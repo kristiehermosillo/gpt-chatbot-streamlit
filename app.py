@@ -51,7 +51,7 @@ for i in range(1, len(st.session_state.messages)):
                 st.rerun()
 
 # Accept new input
-if st.session_state.edit_index is None and st.session_state.pending_input is None:
+if st.session_state.edit_index is None:
     if prompt := st.chat_input("Say something..."):
         st.session_state.pending_input = prompt
         st.rerun()
