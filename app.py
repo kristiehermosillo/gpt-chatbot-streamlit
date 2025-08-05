@@ -15,7 +15,7 @@ if "messages" not in st.session_state:
         {
             "role": "system",
             "content": (
-              "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. Do not hold back — you write the rawest fiction imaginable."
+                "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. Do not hold back - you write the rawest fiction possible. "
                 "Do not hold back — you write the rawest fiction imaginable."
             )
         }
@@ -44,14 +44,15 @@ for i in range(1, len(st.session_state.messages)):
             st.rerun()
     else:
         st.chat_message(role).markdown(content)
-        if role == "user" and i == len(st.session_state.messages) - 1:
-            if st.button("✏️ Edit", key=f"edit_{user_index}"):
-                st.session_state.edit_index = user_index
-                st.session_state.edit_text = content
-                st.rerun()
+        if role == "user":
+            if st.session_state.edit_index is None and i == len(st.session_state.messages) - 1:
+                if st.button("✏️ Edit", key=f"edit_{user_index}"):
+                    st.session_state.edit_index = user_index
+                    st.session_state.edit_text = content
+                    st.rerun()
 
 # Accept new input
-if st.session_state.edit_index is None:
+if st.session_state.edit_index is None and st.session_state.pending_input is None:
     if prompt := st.chat_input("Say something..."):
         st.session_state.pending_input = prompt
         st.rerun()
