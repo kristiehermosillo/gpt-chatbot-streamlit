@@ -42,14 +42,14 @@ for i, msg in enumerate(st.session_state.messages[1:]):  # Skip system message
             # Cut everything that came after the edited message
             st.session_state.messages = st.session_state.messages[:i + 2]
             st.session_state.edit_index = None
-            st.experimental_rerun()
+            st.rerun()
     else:
         st.chat_message(role).markdown(content)
         if role == "user":
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = content
-                st.experimental_rerun()
+                st.rerun()
 
 # Chat input (only visible when not editing)
 if st.session_state.edit_index is None:
