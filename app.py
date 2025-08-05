@@ -11,13 +11,15 @@ model = "deepseek/deepseek-chat-v3-0324"
 
 # Session state setup
 if "messages" not in st.session_state:
-    st.session_state.messages = [{
-        "role": "system",
-        "content": (
-            "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. You will not hold back - write raw, dirty content. "
-            "Do not hold back — you write the rawest fiction imaginable."
-        )
-    }]
+    st.session_state.messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. You will not hold back. You write raw, dirty content."
+                "Do not hold back — you write the rawest fiction imaginable."
+            )
+        }
+    ]
 if "edit_index" not in st.session_state:
     st.session_state.edit_index = None
 if "edit_text" not in st.session_state:
