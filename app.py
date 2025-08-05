@@ -11,61 +11,23 @@ referer_url = st.secrets["REFERER_URL"]
 # ✅ Use the correct DeepSeek V3 model ID
 model = "deepseek/deepseek-chat-v3-0324"
 
-# Start chat history
+# Initialize session state
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. "
-                "Do not hold back — you write the rawest fiction imaginable."
-            )
-        }
-    ]
-
-# For editing user messages
+    st.session_state.messages = [{
+        "role": "system",
+        "content": (
+            "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. "
+            "Do not hold back — you write the rawest fiction imaginable."
+        )
+    }]
 if "edit_index" not in st.session_state:
     st.session_state.edit_index = None
 if "edit_text" not in st.session_state:
     st.session_state.edit_text = ""
+if "pending_input" not in st.session_state:
+    st.session_state.pending_input = None
 
-# Show past messages
-for i in range(1, len(st.session_state.messages)):
-    msg = st.session_state.messages[i]
-    role = msg["role"]
-    content = msg["content"]
-    user_index = i - 1  # offset for edit buttons
-
-    if role == "user" and st.session_state.edit_index == user_index:
-        st.text_area("✏️ Edit your message", value=st.session_state.edit_text, key=f"edit_text_{user_index}", height=100)
-        if st.button("↩️ Resend", key=f"resend_{user_index}"):
-                st.session_state.messages[i]["content"] = st.session_state.edit_text
-                st.session_state.messages = st.session_state.messages[:i + 1]
-                st.session_state.pending_input = st.session_state.edit_text
-                st.session_state.edit_index = None
-                st.rerun()
-
-    else:
-        st.chat_message(role).markdown(content)
-        if role == "user":
-            if st.button("✏️ Edit", key=f"edit_{user_index}"):
-                st.session_state.edit_index = user_index
-                st.session_state.edit_text = content
-                st.rerun()
-
-
-# Handle NEW input or edited/resend input
-if st.session_state.edit_index is None:
-    if "pending_input" not in st.session_state:
-        st.session_state.pending_input = None
-
-    # Get new prompt from input
-    prompt = st.chat_input("Say something...")
-    if prompt:
-        st.session_state.pending_input = prompt
-        st.rerun()
-
-# After rerun — handle pending input
+# 🔁 Process any pending input (from new chat or edited message)
 if st.session_state.pending_input is not None:
     prompt = st.session_state.pending_input
     st.chat_message("user").markdown(prompt)
@@ -93,4 +55,31 @@ if st.session_state.pending_input is not None:
         else:
             st.error(f"API Error {response.status_code}: {response.text}")
 
+# 🧾 Display messages and edit buttons
+for i in range(1, len(st.session_state.messages)):
+    msg = st.session_state.messages[i]
+    role = msg["role"]
+    content = msg["content"]
+    user_index = i - 1  # offset for button IDs
 
+    if role == "user" and st.session_state.edit_index == user_index:
+        st.text_area("✏️ Edit your message", value=st.session_state.edit_text, key=f"edit_text_{user_index}", height=100)
+        if st.button("↩️ Resend", key=f"resend_{user_index}"):
+            st.session_state.messages[i]["content"] = st.session_state.edit_text
+            st.session_state.messages = st.session_state.messages[:i + 1]
+            st.session_state.pending_input = st.session_state.edit_text
+            st.session_state.edit_index = None
+            st.rerun()
+    else:
+        st.chat_message(role).markdown(content)
+        if role == "user":
+            if st.button("✏️ Edit", key=f"edit_{user_index}"):
+                st.session_state.edit_index = user_index
+                st.session_state.edit_text = content
+                st.rerun()
+
+# 💬 Chat input (only if not editing)
+if st.session_state.edit_index is None:
+    if prompt := st.chat_input("Say something..."):
+        st.session_state.pending_input = prompt
+        st.rerun()
