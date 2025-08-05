@@ -1,12 +1,13 @@
 import streamlit as st
-import openai
+import requests
 
-st.set_page_config(page_title="GPT Chatbot", page_icon="🤖")
+st.set_page_config(page_title="GPT Chatbot (OpenRouter)", page_icon="🤖")
 
-# Load OpenAI API key from secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+st.title("GPT Chatbot (via OpenRouter)")
 
-st.title("GPT Chatbot")
+# Load keys from secrets
+api_key = st.secrets["OPENROUTER_API_KEY"]
+referer_url = st.secrets["REFERER_URL"]
 
 # Chat history
 if "messages" not in st.session_state:
@@ -14,21 +15,32 @@ if "messages" not in st.session_state:
         {"role": "system", "content": "You are a helpful assistant."}
     ]
 
-# Show chat history
+# Show messages
 for msg in st.session_state.messages[1:]:
     st.chat_message(msg["role"]).markdown(msg["content"])
 
-# User input
+# Input
 if prompt := st.chat_input("Say something..."):
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.spinner("Thinking..."):
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=st.session_state.messages
-        )
-        reply = response.choices[0].message.content
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "HTTP-Referer": referer_url,
+            "Content-Type": "application/json"
+        }
 
-    st.chat_message("assistant").markdown(reply)
-    st.session_state.messages.append({"role": "assistant", "content": reply})
+        payload = {
+            "model": "mistralai/mistral-7b-instruct",  # or any model you want
+            "messages": st.session_state.messages
+        }
+
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
+
+        if response.status_code == 200:
+            reply = response.json()["choices"][0]["message"]["content"]
+            st.chat_message("assistant").markdown(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+        else:
+            st.error(f"API Error: {response.status_code}")
