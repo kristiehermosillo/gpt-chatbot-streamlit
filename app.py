@@ -5,9 +5,9 @@ st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
 
 st.title("Unfiltered GPT Chatbot (via DeepSeek on OpenRouter)")
 
-# Load from secrets
-OPENROUTER_API_KEY = "sk-your-actual-openrouter-key"
-REFERER_URL = "https://gpt-chatbot-app-xxxxx.streamlit.app"
+# ✅ CORRECT way to load your secret keys:
+api_key = st.secrets["OPENROUTER_API_KEY"]
+REFERER_URL = "https://gpt-chatbot-app-pmja7avxi2bmvmmdfgwpcc.streamlit.app"
 
 # Use DeepSeek model
 model = "deepseek-ai/deepseek-llm-chat"
