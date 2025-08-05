@@ -39,10 +39,12 @@ for i in range(1, len(st.session_state.messages)):
     if role == "user" and st.session_state.edit_index == user_index:
         st.text_area("✏️ Edit your message", value=st.session_state.edit_text, key=f"edit_text_{user_index}", height=100)
         if st.button("↩️ Resend", key=f"resend_{user_index}"):
-            st.session_state.messages[i]["content"] = st.session_state.edit_text
-            st.session_state.messages = st.session_state.messages[:i + 1]
-            st.session_state.edit_index = None
-            st.rerun()
+                st.session_state.messages[i]["content"] = st.session_state.edit_text
+                st.session_state.messages = st.session_state.messages[:i + 1]
+                st.session_state.pending_input = st.session_state.edit_text
+                st.session_state.edit_index = None
+                st.rerun()
+
     else:
         st.chat_message(role).markdown(content)
         if role == "user":
@@ -52,18 +54,19 @@ for i in range(1, len(st.session_state.messages)):
                 st.rerun()
 
 
-# Handle input
+# Handle NEW input or edited/resend input
 if st.session_state.edit_index is None:
     if "pending_input" not in st.session_state:
         st.session_state.pending_input = None
 
+    # Get new prompt from input
     prompt = st.chat_input("Say something...")
     if prompt:
         st.session_state.pending_input = prompt
         st.rerun()
 
-# After rerun — process pending input
-if st.session_state.get("pending_input"):
+# After rerun — handle pending input
+if st.session_state.pending_input is not None:
     prompt = st.session_state.pending_input
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -89,4 +92,5 @@ if st.session_state.get("pending_input"):
             st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
             st.error(f"API Error {response.status_code}: {response.text}")
+
 
