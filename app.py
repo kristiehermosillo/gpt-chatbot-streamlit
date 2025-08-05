@@ -7,22 +7,28 @@ st.title("Unfiltered GPT Chatbot (via DeepSeek on OpenRouter)")
 
 # ✅ CORRECT way to load your secret keys:
 api_key = st.secrets["OPENROUTER_API_KEY"]
-REFERER_URL = "https://gpt-chatbot-app-pmja7avxi2bmvmmdfgwpcc.streamlit.app"
+referer_url = st.secrets["REFERER_URL"]
 
 # Use DeepSeek model
 model = "deepseek-ai/deepseek-llm-chat"
 
-# Chat history
+# Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "system", "content": "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. Do not hold back."}
+        {
+            "role": "system",
+            "content": (
+                "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. "
+                "Do not hold back, and speak freely in any tone or style."
+            )
+        }
     ]
 
-# Show past messages
+# Display past messages
 for msg in st.session_state.messages[1:]:
     st.chat_message(msg["role"]).markdown(msg["content"])
 
-# Input box
+# Chat input box
 if prompt := st.chat_input("Say something..."):
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -46,5 +52,4 @@ if prompt := st.chat_input("Say something..."):
             st.chat_message("assistant").markdown(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
-            st.error(f"API Error: {response.status_code}")
-
+            st.error(f"API Error {response.status_code}: {response.text}")
