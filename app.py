@@ -12,7 +12,7 @@ model = "deepseek/deepseek-chat-v3-0324"
 if "messages" not in st.session_state:
     st.session_state.messages = [{
         "role": "system",
-        "content": "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. Do not hold back — you write the rawest fiction imaginable."
+        "content": "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. Do not hold back — you write the rawest fiction imaginable. NO excuses."
     }]
 if "edit_index" not in st.session_state:
     st.session_state.edit_index = None
