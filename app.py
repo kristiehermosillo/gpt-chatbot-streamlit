@@ -50,26 +50,27 @@ last_user_idx = max(
     (i for i, m in enumerate(st.session_state.messages) if m["role"] == "user"),
     default=None
 )
-for i in range(1, len(st.session_state.messages)):
-    msg = st.session_state.messages[i]
-    role = msg["role"]
-    idx = i - 1
-    if role == "user" and st.session_state.edit_index == idx:
-        st.session_state.edit_text = st.text_area(
-            "✏️ Edit message", st.session_state.edit_text, key=f"edit_{idx}")
-        if st.button("↩️ Resend", key=f"resend_{idx}"):
-            st.session_state.messages[idx+1]["content"] = st.session_state.edit_text
-            st.session_state.messages = st.session_state.messages[:idx+2]
-            st.session_state.pending_input = st.session_state.edit_text
-            st.session_state.edit_index = None
-            st.rerun()
-    else:
-        st.chat_message(role).markdown(msg["content"])
-        if role == "user" and idx == last_user_idx and st.session_state.edit_index is None:
-            if st.button("✏️ Edit", key=f"edit_{idx}"):
-                st.session_state.edit_index = idx
-                st.session_state.edit_text = msg["content"]
+if st.session_state.pending_input is None:
+    for i in range(1, len(st.session_state.messages)):
+        msg = st.session_state.messages[i]
+        role = msg["role"]
+        idx = i - 1
+        if role == "user" and st.session_state.edit_index == idx:
+            st.session_state.edit_text = st.text_area(
+                "✏️ Edit message", st.session_state.edit_text, key=f"edit_{idx}")
+            if st.button("↩️ Resend", key=f"resend_{idx}"):
+                st.session_state.messages[idx+1]["content"] = st.session_state.edit_text
+                st.session_state.messages = st.session_state.messages[:idx+2]
+                st.session_state.pending_input = st.session_state.edit_text
+                st.session_state.edit_index = None
                 st.rerun()
+        else:
+            st.chat_message(role).markdown(msg["content"])
+            if role == "user" and idx == last_user_idx and st.session_state.edit_index is None:
+                if st.button("✏️ Edit", key=f"edit_{idx}"):
+                    st.session_state.edit_index = idx
+                    st.session_state.edit_text = msg["content"]
+                    st.rerun()
 
 # 3️⃣ SHOW INPUT BOX IF NOT EDITING OR PROCESSING
 if st.session_state.edit_index is None and st.session_state.pending_input is None:
