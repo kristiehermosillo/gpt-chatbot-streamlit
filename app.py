@@ -30,26 +30,27 @@ if "edit_text" not in st.session_state:
     st.session_state.edit_text = ""
 
 # Show past messages
-for i, msg in enumerate(st.session_state.messages[1:]):  # Skip system message
+for i in range(1, len(st.session_state.messages)):
+    msg = st.session_state.messages[i]
     role = msg["role"]
     content = msg["content"]
+    user_index = i - 1  # offset for edit buttons
 
-    if role == "user" and st.session_state.edit_index == i:
-        st.text_area("✏️ Edit your message", value=st.session_state.edit_text, key=f"edit_text_{i}", height=100)
-        if st.button("↩️ Resend", key=f"resend_{i}"):
-            # Replace edited message
-            st.session_state.messages[i + 1]["content"] = st.session_state.edit_text
-            # Cut everything that came after the edited message
-            st.session_state.messages = st.session_state.messages[:i + 2]
+    if role == "user" and st.session_state.edit_index == user_index:
+        st.text_area("✏️ Edit your message", value=st.session_state.edit_text, key=f"edit_text_{user_index}", height=100)
+        if st.button("↩️ Resend", key=f"resend_{user_index}"):
+            st.session_state.messages[i]["content"] = st.session_state.edit_text
+            st.session_state.messages = st.session_state.messages[:i + 1]
             st.session_state.edit_index = None
             st.rerun()
     else:
         st.chat_message(role).markdown(content)
         if role == "user":
-            if st.button("✏️ Edit", key=f"edit_{i}"):
-                st.session_state.edit_index = i
+            if st.button("✏️ Edit", key=f"edit_{user_index}"):
+                st.session_state.edit_index = user_index
                 st.session_state.edit_text = content
                 st.rerun()
+
 
 # Chat input (only visible when not editing)
 if st.session_state.edit_index is None:
