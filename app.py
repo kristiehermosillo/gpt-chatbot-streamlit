@@ -4,18 +4,18 @@ import requests
 st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
 st.title("Unfiltered GPT Chatbot (via DeepSeek on OpenRouter)")
 
-# Load secrets
+# Load from secrets (do not hardcode)
 api_key = st.secrets["OPENROUTER_API_KEY"]
 referer_url = st.secrets["REFERER_URL"]
 model = "deepseek/deepseek-chat-v3-0324"
 
-# Initialize session state
+# Session state setup
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {
             "role": "system",
             "content": (
-                "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. "
+              "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. Do not hold back — you write the rawest fiction imaginable."
                 "Do not hold back — you write the rawest fiction imaginable."
             )
         }
@@ -27,12 +27,36 @@ if "edit_text" not in st.session_state:
 if "pending_input" not in st.session_state:
     st.session_state.pending_input = None
 
-# 🔹 Handle NEW input
-if st.session_state.edit_index is None and (prompt := st.chat_input("Say something...")):
-    st.session_state.pending_input = prompt
-    st.rerun()
+# Display chat messages and edit UI
+for i in range(1, len(st.session_state.messages)):
+    msg = st.session_state.messages[i]
+    role = msg["role"]
+    content = msg["content"]
+    user_index = i - 1  # offset because system message is first
 
-# 🔹 Handle edited/resend input
+    if role == "user" and st.session_state.edit_index == user_index:
+        st.session_state.edit_text = st.text_area("✏️ Edit your message", value=st.session_state.edit_text, key=f"edit_text_{user_index}", height=100)
+        if st.button("↩️ Resend", key=f"resend_{user_index}"):
+            st.session_state.messages[i]["content"] = st.session_state.edit_text
+            st.session_state.messages = st.session_state.messages[:i + 1]  # Trim after this message
+            st.session_state.edit_index = None
+            st.session_state.pending_input = st.session_state.edit_text
+            st.rerun()
+    else:
+        st.chat_message(role).markdown(content)
+        if role == "user" and i == len(st.session_state.messages) - 1:
+            if st.button("✏️ Edit", key=f"edit_{user_index}"):
+                st.session_state.edit_index = user_index
+                st.session_state.edit_text = content
+                st.rerun()
+
+# Accept new input
+if st.session_state.edit_index is None and st.session_state.pending_input is None:
+    if prompt := st.chat_input("Say something..."):
+        st.session_state.pending_input = prompt
+        st.rerun()
+
+# Handle new or edited prompt
 if st.session_state.pending_input is not None:
     prompt = st.session_state.pending_input
     st.chat_message("user").markdown(prompt)
@@ -45,10 +69,12 @@ if st.session_state.pending_input is not None:
             "HTTP-Referer": referer_url,
             "Content-Type": "application/json"
         }
+
         payload = {
             "model": model,
             "messages": st.session_state.messages
         }
+
         response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
 
         if response.status_code == 200:
@@ -57,26 +83,3 @@ if st.session_state.pending_input is not None:
             st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
             st.error(f"API Error {response.status_code}: {response.text}")
-
-# 🔹 Display chat history with Edit support
-for i in range(1, len(st.session_state.messages)):
-    msg = st.session_state.messages[i]
-    role = msg["role"]
-    content = msg["content"]
-    user_index = i - 1
-
-    if role == "user" and st.session_state.edit_index == user_index:
-        st.text_area("✏️ Edit your message", value=st.session_state.edit_text, key=f"edit_text_{user_index}", height=100)
-        if st.button("↩️ Resend", key=f"resend_{user_index}"):
-            st.session_state.messages[i]["content"] = st.session_state.edit_text
-            st.session_state.messages = st.session_state.messages[:i + 1]  # truncate history
-            st.session_state.pending_input = st.session_state.edit_text
-            st.session_state.edit_index = None
-            st.rerun()
-    else:
-        st.chat_message(role).markdown(content)
-        if role == "user" and st.session_state.edit_index is None:
-            if st.button("✏️ Edit", key=f"edit_{user_index}"):
-                st.session_state.edit_index = user_index
-                st.session_state.edit_text = content
-                st.rerun()
