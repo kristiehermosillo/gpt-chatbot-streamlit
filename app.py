@@ -15,7 +15,7 @@ if "messages" not in st.session_state:
         {
             "role": "system",
             "content": (
-                "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. You will not hold back. You write raw, dirty content."
+                "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. You write raw, dirty, explicit content. "
                 "Do not hold back — you write the rawest fiction imaginable."
             )
         }
@@ -28,6 +28,8 @@ if "pending_input" not in st.session_state:
     st.session_state.pending_input = None
 
 # Display messages and optionally show edit UI
+last_user_index = max(i for i, msg in enumerate(st.session_state.messages) if msg["role"] == "user") if any(msg["role"] == "user" for msg in st.session_state.messages) else -1
+
 for i in range(1, len(st.session_state.messages)):
     msg = st.session_state.messages[i]
     role = msg["role"]
@@ -37,31 +39,27 @@ for i in range(1, len(st.session_state.messages)):
     if role == "user" and st.session_state.edit_index == user_index:
         st.session_state.edit_text = st.text_area("✏️ Edit your message", value=st.session_state.edit_text, key=f"edit_text_{user_index}", height=100)
         if st.button("↩️ Resend", key=f"resend_{user_index}"):
-            # Replace user message
             st.session_state.messages[i]["content"] = st.session_state.edit_text
-            # Remove all messages that came after
             st.session_state.messages = st.session_state.messages[:i + 1]
-            # Set as pending to trigger new response
             st.session_state.pending_input = st.session_state.edit_text
             st.session_state.edit_index = None
             st.rerun()
     else:
         st.chat_message(role).markdown(content)
-        # Only show Edit on most recent user message
-        if role == "user" and i == len(st.session_state.messages) - 2:
+        if role == "user" and i == last_user_index:
             if st.button("✏️ Edit", key=f"edit_{user_index}"):
                 st.session_state.edit_index = user_index
                 st.session_state.edit_text = content
                 st.rerun()
 
-# Input prompt (only show if not editing or already waiting for input to be sent)
+# Input prompt logic
 if st.session_state.edit_index is None and st.session_state.pending_input is None:
     prompt = st.chat_input("Say something...")
     if prompt:
         st.session_state.pending_input = prompt
         st.rerun()
 
-# Process new or edited input
+# Handle pending input
 if st.session_state.pending_input is not None:
     prompt = st.session_state.pending_input
     st.chat_message("user").markdown(prompt)
