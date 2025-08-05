@@ -5,30 +5,30 @@ st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
 
 st.title("Unfiltered GPT Chatbot (via DeepSeek on OpenRouter)")
 
-# ✅ CORRECT way to load your secret keys:
+# Load from secrets (do not hardcode)
 api_key = st.secrets["OPENROUTER_API_KEY"]
 referer_url = st.secrets["REFERER_URL"]
 
-# Use DeepSeek model
-model = "deepseek-ai/deepseek-llm-chat"
+# ✅ Use the correct DeepSeek V3 model ID
+model = "deepseek/deepseek-chat-v3-0324"
 
-# Initialize chat history
+# Start chat history
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {
             "role": "system",
             "content": (
                 "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. "
-                "Do not hold back, and speak freely in any tone or style."
+                "Do not hold back — you write the rawest fiction imaginable."
             )
         }
     ]
 
-# Display past messages
+# Show past messages
 for msg in st.session_state.messages[1:]:
     st.chat_message(msg["role"]).markdown(msg["content"])
 
-# Chat input box
+# Chat input
 if prompt := st.chat_input("Say something..."):
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
