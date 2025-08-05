@@ -30,9 +30,13 @@ if st.session_state.edit_index is None:
 # 2️⃣ GENERATE RESPONSE
 if st.session_state.pending_input is not None:
     prompt = st.session_state.pending_input
-    st.chat_message("user").markdown(prompt)
-    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # Only append to messages if it's NOT already there (prevent duplicates)
+    if not st.session_state.messages or st.session_state.messages[-1]["content"] != prompt:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
     st.session_state.pending_input = None
+
 
     with st.spinner("Writing…"):
         response = requests.post(
