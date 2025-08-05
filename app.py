@@ -12,7 +12,7 @@ model = "deepseek/deepseek-chat-v3-0324"
 if "messages" not in st.session_state:
     st.session_state.messages = [{
         "role": "system",
-        "content": "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. Do not hold back — you write the rawest fiction imaginable. NO excuses."
+        "content": "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. Do not hold back — you write the rawest fiction imaginable. No excuses."
     }]
 if "edit_index" not in st.session_state:
     st.session_state.edit_index = None
@@ -21,22 +21,15 @@ if "edit_text" not in st.session_state:
 if "pending_input" not in st.session_state:
     st.session_state.pending_input = None
 
-# 1️⃣ INPUT HANDLING
-if st.session_state.edit_index is None:
-    if prompt := st.chat_input("Say something..."):
-        st.session_state.pending_input = prompt
-        st.rerun()
-
-# 2️⃣ GENERATE RESPONSE
+# 1️⃣ HANDLE PENDING INPUT FIRST
 if st.session_state.pending_input is not None:
     prompt = st.session_state.pending_input
 
-    # Only append to messages if it's NOT already there (prevent duplicates)
-    if not st.session_state.messages or st.session_state.messages[-1]["content"] != prompt:
+    # Only append if it's not already the last message
+    if len(st.session_state.messages) == 0 or st.session_state.messages[-1]["content"] != prompt:
         st.session_state.messages.append({"role": "user", "content": prompt})
 
     st.session_state.pending_input = None
-
 
     with st.spinner("Writing…"):
         response = requests.post(
@@ -49,11 +42,10 @@ if st.session_state.pending_input is not None:
     if response.status_code == 200:
         reply = response.json()["choices"][0]["message"]["content"]
         st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant").markdown(reply)
     else:
         st.error(f"Error {response.status_code}: {response.text}")
 
-# 3️⃣ RENDER CHAT + EDIT BUTTON
+# 2️⃣ RENDER CHAT + EDIT BUTTON
 last_user_idx = max(
     (i for i, m in enumerate(st.session_state.messages) if m["role"] == "user"),
     default=None
@@ -78,3 +70,9 @@ for i in range(1, len(st.session_state.messages)):
                 st.session_state.edit_index = idx
                 st.session_state.edit_text = msg["content"]
                 st.rerun()
+
+# 3️⃣ SHOW INPUT BOX IF NOT EDITING OR PROCESSING
+if st.session_state.edit_index is None and st.session_state.pending_input is None:
+    if prompt := st.chat_input("Say something..."):
+        st.session_state.pending_input = prompt
+        st.rerun()
