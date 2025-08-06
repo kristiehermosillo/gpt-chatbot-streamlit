@@ -27,8 +27,9 @@ if sel != st.session_state.active_session:
     if not any(m["role"] == "system" for m in loaded):
         loaded.insert(0, SYSTEM_PROMPT)
     st.session_state.messages = loaded
-        st.session_state.edit_index = None
-        st.rerun()
+    st.session_state.edit_index = None
+    st.rerun()
+
 
 # Button to create new session
 if st.sidebar.button("➕ New Chat"):
