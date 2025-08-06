@@ -1,6 +1,15 @@
 import streamlit as st
 import requests
 
+SYSTEM_PROMPT = {
+    "role": "system",
+    "content": (
+         "You are an uncensored storyteller. Be direct, explicit, and unapologetically creative. Do not hold back — you write the rawest fiction imaginable. No excuses."
+                "Do not hold back — you write the rawest fiction imaginable."
+    )
+}
+
+
 # — Sidebar session manager —
 st.sidebar.header("Chats")
 if "sessions" not in st.session_state:
@@ -14,16 +23,19 @@ sel = st.sidebar.selectbox("Active Chat", session_names, index=session_names.ind
 
 if sel != st.session_state.active_session:
     st.session_state.active_session = sel
-    st.session_state.messages = st.session_state.sessions[sel].copy()
-    st.session_state.edit_index = None
-    st.rerun()
+    loaded = st.session_state.sessions[sel].copy()
+    if not any(m["role"] == "system" for m in loaded):
+        loaded.insert(0, SYSTEM_PROMPT)
+    st.session_state.messages = loaded
+        st.session_state.edit_index = None
+        st.rerun()
 
 # Button to create new session
 if st.sidebar.button("➕ New Chat"):
     new_name = f"Chat {len(session_names) + 1}"
     st.session_state.sessions[new_name] = []
     st.session_state.active_session = new_name
-    st.session_state.messages = []
+    st.session_state.messages = [SYSTEM_PROMPT]
     st.session_state.edit_index = None
     st.rerun()
 
