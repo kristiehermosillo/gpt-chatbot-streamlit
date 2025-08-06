@@ -104,7 +104,7 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
     st.session_state.pending_input = None
 
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").markdown(prompt)
+
 
     if st.session_state.mode == "Story":
         st.session_state.messages.insert(
@@ -141,8 +141,10 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
     if response.status_code == 200:
         reply = response.json()["choices"][0]["message"]["content"]
         st.session_state.messages.append({"role": "assistant", "content": reply})
+    
         st.session_state.just_responded = True
         st.rerun()
+
     else:
         st.error(f"API Error {response.status_code}: {response.text}")
         st.session_state.just_responded = False
