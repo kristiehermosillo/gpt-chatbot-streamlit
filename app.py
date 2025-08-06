@@ -29,6 +29,7 @@ if "active_session" not in st.session_state:
     st.session_state.active_session = default_name
     st.session_state.messages = [SYSTEM_PROMPT]
 
+session_names = list(st.session_state.sessions.keys())
 try:
     selected = st.sidebar.selectbox(
         "Active Chat",
