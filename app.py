@@ -124,9 +124,10 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
     prompt = st.session_state.pending_input
     st.session_state.pending_input = None
 
-    # Append user message
+    # Append user message and display it in sync with system prompts and reply
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").markdown(prompt)
+
 
     # Insert a special mode-based system message
     if st.session_state.mode == "Story":
