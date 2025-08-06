@@ -48,12 +48,12 @@ else:
     st.sidebar.write("No chats available yet.")
 
 
-if selected != st.session_state.active_session:
-    st.session_state.active_session = selected
-    st.session_state.messages = st.session_state.sessions[selected].copy()
-    st.session_state.edit_index = None
-    st.rerun()
-
+if session_names:
+    if selected != st.session_state.active_session:
+        st.session_state.active_session = selected
+        st.session_state.messages = st.session_state.sessions[selected].copy()
+        st.session_state.edit_index = None
+        st.rerun()
 
 
 # Button to create new session
