@@ -30,18 +30,23 @@ if "active_session" not in st.session_state:
     st.session_state.messages = [SYSTEM_PROMPT]
 
 session_names = list(st.session_state.sessions.keys())
-try:
-    selected = st.sidebar.selectbox(
-        "Active Chat",
-        session_names,
-        index=session_names.index(st.session_state.active_session)
-    )
-except ValueError:
-    selected = st.sidebar.selectbox("Active Chat", session_names, index=0)
-    st.session_state.active_session = session_names[0]
-    st.session_state.messages = st.session_state.sessions[session_names[0]].copy()
-    st.session_state.edit_index = None
-    st.rerun()
+
+if session_names:
+    try:
+        selected = st.sidebar.selectbox(
+            "Active Chat",
+            session_names,
+            index=session_names.index(st.session_state.active_session)
+        )
+    except ValueError:
+        selected = st.sidebar.selectbox("Active Chat", session_names, index=0)
+        st.session_state.active_session = session_names[0]
+        st.session_state.messages = st.session_state.sessions[session_names[0]].copy()
+        st.session_state.edit_index = None
+        st.rerun()
+else:
+    st.sidebar.write("No chats available yet.")
+
 
 if selected != st.session_state.active_session:
     st.session_state.active_session = selected
