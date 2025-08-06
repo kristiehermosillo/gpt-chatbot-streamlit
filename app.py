@@ -29,6 +29,7 @@ if "active_session" not in st.session_state:
     st.session_state.active_session = default_name
     st.session_state.messages = [SYSTEM_PROMPT]
 
+mode = st.sidebar.radio("Mode", ["Story", "Chat"], key="mode")
 session_names = list(st.session_state.sessions.keys())
 
 if session_names:
@@ -124,8 +125,21 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
     st.session_state.pending_input = None
 
     # Append user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").markdown(prompt)
+st.session_state.messages.append({"role": "user", "content": prompt})
+st.chat_message("user").markdown(prompt)
+
+# Insert a special mode-based system message
+if st.session_state.mode == "Story":
+    st.session_state.messages.insert(
+        -1,  # insert before user's prompt
+        {"role": "system", "content": "Rewrite the user's prompt as an immersive, cinematic scene. Keep the same core action and intent, but expand it with vivid sensory detail and emotional depth. Do not skip what was written. Do not invent unrelated actions."
+}
+    )
+elif st.session_state.mode == "Chat":
+    st.session_state.messages.insert(
+        -1,
+        {"role": "system", "content": "Engage in natural, back-and-forth conversation as the character or assistant."}
+    )
 
     # Call API
     with st.spinner("Writing..."):
