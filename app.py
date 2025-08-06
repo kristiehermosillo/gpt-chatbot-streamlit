@@ -183,11 +183,14 @@ last_user_idx = max((i for i, m in enumerate(st.session_state.messages) if m["ro
 for i, msg in enumerate(st.session_state.messages):
     role = msg["role"]
 
+    if role == "system":
+        continue
+
     if role == "user" and st.session_state.edit_index == i:
         st.session_state.edit_text = st.text_area("✏️ Edit message", st.session_state.edit_text, key=f"edit_{i}")
         if st.button("↩️ Resend", key=f"resend_{i}"):
             st.session_state.messages[i]["content"] = st.session_state.edit_text
-            st.session_state.messages = st.session_state.messages[:i+1]  # Trim history
+            st.session_state.messages = st.session_state.messages[:i+1]
             st.session_state.pending_input = st.session_state.edit_text
             st.session_state.edit_index = None
             st.rerun()
@@ -198,6 +201,7 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = msg["content"]
                 st.rerun()
+
 
 # Only show input box if not editing or submitting
 if st.session_state.edit_index is None and st.session_state.pending_input is None:
