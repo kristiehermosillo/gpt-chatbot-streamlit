@@ -17,24 +17,33 @@ if "sessions" not in st.session_state:
 if "active_session" not in st.session_state:
     st.session_state.active_session = "Session 1"
 
-# Dropdown to choose session
-session_names = list(st.session_state.sessions.keys()) or ["Session 1"]
-sel = st.sidebar.selectbox("Active Chat", session_names, index=session_names.index(st.session_state.active_session))
+# Sidebar Session Selector
+st.sidebar.header("Chats")
 
-if sel != st.session_state.active_session:
-    st.session_state.active_session = sel
-    loaded = st.session_state.sessions[sel].copy()
-    if not any(m["role"] == "system" for m in loaded):
-        loaded.insert(0, SYSTEM_PROMPT)
-    st.session_state.messages = loaded
+if "sessions" not in st.session_state:
+    st.session_state.sessions = {}
+
+if "active_session" not in st.session_state:
+    default_name = "Chat 1"
+    st.session_state.sessions[default_name] = [SYSTEM_PROMPT]
+    st.session_state.active_session = default_name
+    st.session_state.messages = [SYSTEM_PROMPT]
+
+session_names = list(st.session_state.sessions.keys())
+selected = st.sidebar.selectbox("Active Chat", session_names, index=session_names.index(st.session_state.active_session))
+
+if selected != st.session_state.active_session:
+    st.session_state.active_session = selected
+    st.session_state.messages = st.session_state.sessions[selected].copy()
     st.session_state.edit_index = None
     st.rerun()
 
 
+
 # Button to create new session
-if st.sidebar.button("➕ New Chat"):
-    new_name = f"Chat {len(session_names) + 1}"
-    st.session_state.sessions[new_name] = []
+if st.sidebar.button("+ New Chat"):
+    new_name = f"Chat {len(st.session_state.sessions) + 1}"
+    st.session_state.sessions[new_name] = [SYSTEM_PROMPT]
     st.session_state.active_session = new_name
     st.session_state.messages = [SYSTEM_PROMPT]
     st.session_state.edit_index = None
