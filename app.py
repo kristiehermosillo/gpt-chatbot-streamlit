@@ -1,8 +1,42 @@
 import streamlit as st
 import requests
 
+# — Sidebar session manager —
+st.sidebar.header("Chats")
+if "sessions" not in st.session_state:
+    st.session_state.sessions = {}
+if "active_session" not in st.session_state:
+    st.session_state.active_session = "Session 1"
+
+# Dropdown to choose session
+session_names = list(st.session_state.sessions.keys()) or ["Session 1"]
+sel = st.sidebar.selectbox("Active Chat", session_names, index=session_names.index(st.session_state.active_session))
+
+if sel != st.session_state.active_session:
+    st.session_state.active_session = sel
+    st.session_state.messages = st.session_state.sessions[sel].copy()
+    st.session_state.edit_index = None
+    st.rerun()
+
+# Button to create new session
+if st.sidebar.button("➕ New Chat"):
+    new_name = f"Chat {len(session_names) + 1}"
+    st.session_state.sessions[new_name] = []
+    st.session_state.active_session = new_name
+    st.session_state.messages = []
+    st.session_state.edit_index = None
+    st.rerun()
+
+# Whenever messages change—save them back
+def save_session():
+    st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
+
+# At end of your message-handling loop (just before final input): call:
+save_session()
+
+
 st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
-st.title("Unfiltered GPT Chatbot (via DeepSeek on OpenRouter)")
+st.title("Chapter Zero")
 
 # Load from secrets
 api_key = st.secrets["OPENROUTER_API_KEY"]
