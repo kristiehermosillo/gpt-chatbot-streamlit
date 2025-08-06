@@ -70,10 +70,13 @@ with st.sidebar.expander("✏️ Rename Current Chat"):
     if st.button("Rename"):
         old_name = st.session_state.active_session
         if new_name and new_name != old_name:
-            # Copy the session to new name
-            st.session_state.sessions[new_name] = st.session_state.sessions.pop(old_name)
-            st.session_state.active_session = new_name
-            st.rerun()
+            if new_name in st.session_state.sessions:
+                st.warning("Chat name already exists.")
+            else:
+                st.session_state.sessions[new_name] = st.session_state.sessions.pop(old_name)
+                st.session_state.active_session = new_name
+                st.rerun()
+
 
 # Whenever messages change—save them back
 def save_session():
