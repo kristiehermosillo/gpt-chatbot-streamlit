@@ -34,6 +34,9 @@ def save_session():
 # At end of your message-handling loop (just before final input): call:
 save_session()
 
+# Save messages to the current session before ending
+st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
+
 
 st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
 st.title("Chapter Zero")
