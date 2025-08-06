@@ -20,12 +20,6 @@ if "active_session" not in st.session_state:
 if "sessions" not in st.session_state:
     st.session_state.sessions = {}
 
-if "active_session" not in st.session_state:
-    default_name = "Chat 1"
-    st.session_state.sessions[default_name] = [SYSTEM_PROMPT]
-    st.session_state.active_session = default_name
-    st.session_state.messages = [SYSTEM_PROMPT]
-
 mode = st.sidebar.radio("Mode", ["Story", "Chat"], key="mode")
 session_names = list(st.session_state.sessions.keys())
 
@@ -77,7 +71,19 @@ with st.sidebar.expander("✏️ Rename Current Chat"):
 def save_session():
     st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
 
-if "active_session" in st.session_state and "sessions" in st.session_state:
+# Set fallback if no session exists
+if "active_session" not in st.session_state:
+    default_name = "Chat 1"
+    st.session_state.sessions = {default_name: [SYSTEM_PROMPT]}
+    st.session_state.active_session = default_name
+    st.session_state.messages = [SYSTEM_PROMPT]
+
+# THEN safely call save_session()
+if (
+    "active_session" in st.session_state and
+    "sessions" in st.session_state and
+    "messages" in st.session_state
+):
     save_session()
 
 
