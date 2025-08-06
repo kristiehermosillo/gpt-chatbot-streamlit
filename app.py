@@ -27,8 +27,11 @@ if "edit_text" not in st.session_state:
 if "pending_input" not in st.session_state:
     st.session_state.pending_input = None
 
-# Only handle pending input ONCE
-if st.session_state.pending_input is not None:
+# Handle pending input once per cycle — prevent double rendering
+if "just_responded" not in st.session_state:
+    st.session_state.just_responded = False
+
+if st.session_state.pending_input is not None and not st.session_state.just_responded:
     prompt = st.session_state.pending_input
     st.session_state.pending_input = None
 
@@ -50,10 +53,17 @@ if st.session_state.pending_input is not None:
 
     if response.status_code == 200:
         reply = response.json()["choices"][0]["message"]["content"]
-        st.chat_message("assistant").markdown(reply)
         st.session_state.messages.append({"role": "assistant", "content": reply})
+        st.session_state.just_responded = True
+        st.rerun()
     else:
         st.error(f"API Error {response.status_code}: {response.text}")
+        st.session_state.just_responded = False
+
+# Clear just_responded after rerun
+if st.session_state.just_responded:
+    st.session_state.just_responded = False
+
 
 # Display chat and handle edit button for latest user message only
 last_user_idx = max((i for i, m in enumerate(st.session_state.messages) if m["role"] == "user"), default=None)
