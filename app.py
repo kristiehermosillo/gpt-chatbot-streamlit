@@ -77,7 +77,9 @@ with st.sidebar.expander("✏️ Rename Current Chat"):
 def save_session():
     st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
 
-save_session()
+if "active_session" in st.session_state and "sessions" in st.session_state:
+    save_session()
+
 
 st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
 st.title("Chapter Zero")
