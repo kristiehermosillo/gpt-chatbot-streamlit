@@ -206,9 +206,17 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
             -1,
             {
                 "role": "system",
-                "content": "Engage in natural, back-and-forth conversation as the character or assistant."
+                "content": (
+                    "Engage in natural, back-and-forth conversation as the character or assistant.\n\n"
+                    "Follow these formatting rules from the user:\n"
+                    "- Text inside **[brackets]** is instruction or intent. React to it, but don’t say it aloud.\n"
+                    "- Text inside **(parentheses)** describes physical actions. Treat them as happening in the scene.\n"
+                    "- Text inside **asterisks**, like *this*, is whispered. Keep that tone.\n\n"
+                    "Never skip or ignore the user’s message. Always build on it with continuity."
+                )
             }
         )
+
 
     with st.spinner("Writing..."):
         response = requests.post(
