@@ -271,6 +271,20 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = msg["content"]
                 st.rerun()
+                
+if last_user_idx is not None and st.session_state.edit_index is None and st.session_state.pending_input is None:
+    if st.button("🔄 Regenerate Last Response"):
+        # Remove the last assistant message (if it exists and follows the last user message)
+        if last_user_idx + 1 < len(st.session_state.messages) and st.session_state.messages[last_user_idx + 1]["role"] == "assistant":
+            st.session_state.messages = st.session_state.messages[:last_user_idx + 1]
+        
+        # Set the pending input to the last user message
+        st.session_state.pending_input = st.session_state.messages[last_user_idx]["content"]
+        
+        # Trigger a rerun to regenerate
+        st.rerun()
+
+
 
 if st.session_state.edit_index is None and st.session_state.pending_input is None:
     if prompt := st.chat_input("Say something..."):
