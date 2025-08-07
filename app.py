@@ -53,12 +53,11 @@ if session_names:
         st.session_state.edit_index = None
         st.rerun()
 
-# Button to create new session
 if st.sidebar.button("+ New Chat"):
     new_name = f"Chat {len(st.session_state.sessions) + 1}"
-    st.session_state.sessions[new_name] = [SYSTEM_PROMPT]
+    st.session_state.sessions[new_name] = [SYSTEM_PROMPT, PRIMER]
     st.session_state.active_session = new_name
-    st.session_state.messages = [SYSTEM_PROMPT]
+    st.session_state.messages = [SYSTEM_PROMPT, PRIMER]
     st.session_state.edit_index = None
     st.rerun()
 
