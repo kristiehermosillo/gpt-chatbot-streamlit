@@ -286,11 +286,22 @@ for i, msg in enumerate(st.session_state.messages):
 
     if role == "user" and st.session_state.edit_index == i:
         st.session_state.edit_text = st.text_area("✏️ Edit message", st.session_state.edit_text, key=f"edit_{i}")
-        if st.button("↩️ Resend", key=f"resend_{i}"):
-            st.session_state.messages[i]["content"] = st.session_state.edit_text
-            st.session_state.messages = st.session_state.messages[:i+1]
-            st.session_state.pending_input = st.session_state.edit_text
-            st.session_state.edit_index = None
+    
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("↩️ Resend", key=f"resend_{i}"):
+                st.session_state.messages[i]["content"] = st.session_state.edit_text
+                st.session_state.messages = st.session_state.messages[:i+1]
+                st.session_state.pending_input = st.session_state.edit_text
+                st.session_state.edit_index = None
+                save_session()
+                st.rerun()
+    
+        with col2:
+            if st.button("❌ Cancel", key=f"cancel_{i}"):
+                st.session_state.edit_index = None
+                st.rerun()
+
         
             save_session()  # ✅ Save after user resends
         
