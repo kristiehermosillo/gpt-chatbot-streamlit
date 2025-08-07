@@ -1,9 +1,26 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import requests
 import os
 import json
 
+# 🔽 Add this immediately after imports
+components.html(
+    """
+    <script>
+    const scrollPosition = sessionStorage.getItem("scroll-pos");
+    if (scrollPosition) window.scrollTo(0, parseInt(scrollPosition));
+
+    window.addEventListener("beforeunload", () => {
+        sessionStorage.setItem("scroll-pos", window.scrollY);
+    });
+    </script>
+    """,
+    height=0,
+)
+
 SAVE_PATH = "sessions.json"
+
 
 # Whenever messages change—save them back
 def save_session():
