@@ -8,19 +8,24 @@ import json
 components.html(
     """
     <script>
-    const savedY = sessionStorage.getItem("scroll-y");
-    if (savedY !== null) {
-        window.scrollTo(0, parseInt(savedY));
-    }
-
-    new MutationObserver(() => {
+    // Store scroll position as soon as user scrolls
+    document.addEventListener("scroll", () => {
         sessionStorage.setItem("scroll-y", window.scrollY);
-    }).observe(document.body, { childList: true, subtree: true });
+    });
+
+    // Wait until Streamlit re-renders, then restore scroll
+    window.addEventListener("load", () => {
+        const savedY = sessionStorage.getItem("scroll-y");
+        if (savedY !== null) {
+            setTimeout(() => {
+                window.scrollTo(0, parseInt(savedY));
+            }, 100); // Delay to let DOM stabilize
+        }
+    });
     </script>
     """,
     height=0,
 )
-
 
 SAVE_PATH = "sessions.json"
 
