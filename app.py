@@ -167,6 +167,8 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
         reply = response.json()["choices"][0]["message"]["content"]
         st.session_state.messages.append({"role": "assistant", "content": reply})
     
+        save_session()  # ✅ Save after assistant replies
+    
         st.session_state.just_responded = True
         st.rerun()
 
@@ -191,7 +193,11 @@ for i, msg in enumerate(st.session_state.messages):
             st.session_state.messages = st.session_state.messages[:i+1]
             st.session_state.pending_input = st.session_state.edit_text
             st.session_state.edit_index = None
+        
+            save_session()  # ✅ Save after user resends
+        
             st.rerun()
+
     else:
         st.chat_message(role).markdown(msg["content"])
         if role == "user" and i == last_user_idx and st.session_state.edit_index is None:
