@@ -94,6 +94,36 @@ with st.sidebar.expander("✏️ Rename Current Chat"):
                 st.session_state.sessions[new_name] = st.session_state.sessions.pop(old_name)
                 st.session_state.active_session = new_name
                 st.rerun()
+                
+with st.sidebar.expander("🗑️ Manage Chats"):
+    if st.button("❌ Delete this chat"):
+        deleted = st.session_state.active_session
+        st.session_state.sessions.pop(deleted, None)
+
+        if st.session_state.sessions:
+            new_active = list(st.session_state.sessions.keys())[0]
+            st.session_state.active_session = new_active
+            st.session_state.messages = st.session_state.sessions[new_active].copy()
+        else:
+            st.session_state.sessions = {"Chat 1": [SYSTEM_PROMPT]}
+            st.session_state.active_session = "Chat 1"
+            st.session_state.messages = [SYSTEM_PROMPT]
+
+        save_session()
+        st.rerun()
+
+    if st.button("⚠️ Delete ALL conversations"):
+        st.session_state.sessions = {"Chat 1": [SYSTEM_PROMPT]}
+        st.session_state.active_session = "Chat 1"
+        st.session_state.messages = [SYSTEM_PROMPT]
+
+        if os.path.exists(SAVE_PATH):
+            os.remove(SAVE_PATH)
+
+        save_session()
+        st.rerun()
+
+
 
 # Whenever messages change—save them back
 def save_session():
