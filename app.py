@@ -5,6 +5,12 @@ import json
 
 SAVE_PATH = "sessions.json"
 
+# Whenever messages change—save them back
+def save_session():
+    st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
+    with open(SAVE_PATH, "w") as f:
+        json.dump(st.session_state.sessions, f)
+        
 # Load saved sessions from disk on first app load
 if not st.session_state.get("sessions_initialized"):
     if os.path.exists(SAVE_PATH):
@@ -136,12 +142,6 @@ with st.sidebar.expander("📘 Chat Input Guide"):
 - **\*asterisks\*** → Used to show *whispers or softly spoken words*.  
   _Example_: `I *missed* you.`
     """)
-
-# Whenever messages change—save them back
-def save_session():
-    st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
-    with open(SAVE_PATH, "w") as f:
-        json.dump(st.session_state.sessions, f)
 
 # Set fallback if no session exists
 if "active_session" not in st.session_state:
