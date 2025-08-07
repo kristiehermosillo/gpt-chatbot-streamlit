@@ -123,7 +123,19 @@ with st.sidebar.expander("🗑️ Manage Chats"):
         save_session()
         st.rerun()
 
+with st.sidebar.expander("📘 Chat Input Guide"):
+    st.markdown("""
+**Use these symbols to shape the chat's behavior:**
 
+- **[brackets]** → Used to steer the AI's *intent or reaction*.  
+  _Example_: `[You act shy] I’ve never done this before...`
+
+- **(parentheses)** → Used for *describing physical actions*.  
+  _Example_: `(I glance away)` or `(he grabs the keys)`
+
+- **\*asterisks\*** → Used to show *whispers or softly spoken words*.  
+  _Example_: `I *missed* you.`
+    """)
 
 # Whenever messages change—save them back
 def save_session():
