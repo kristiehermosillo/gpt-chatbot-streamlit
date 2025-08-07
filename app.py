@@ -1,5 +1,10 @@
 import streamlit as st
 import requests
+import os
+import json
+
+SAVE_PATH = "sessions.json"
+
 
 SYSTEM_PROMPT = {
     "role": "system",
@@ -26,6 +31,10 @@ if "active_session" not in st.session_state:
 # Sidebar Session Selector
 if "sessions" not in st.session_state:
     st.session_state.sessions = {}
+    if os.path.exists(SAVE_PATH):
+        with open(SAVE_PATH, "r") as f:
+            st.session_state.sessions = json.load(f)
+
 
 mode = st.sidebar.radio("Mode", ["Story", "Chat"], key="mode")
 session_names = list(st.session_state.sessions.keys())
@@ -76,6 +85,8 @@ with st.sidebar.expander("✏️ Rename Current Chat"):
 # Whenever messages change—save them back
 def save_session():
     st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
+    with open(SAVE_PATH, "w") as f:
+        json.dump(st.session_state.sessions, f)
 
 # Set fallback if no session exists
 if "active_session" not in st.session_state:
