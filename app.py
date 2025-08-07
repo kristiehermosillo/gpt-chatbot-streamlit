@@ -175,19 +175,19 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
 
 
     if st.session_state.mode == "Story":
-    st.session_state.messages.insert(
-        -1,
-        {
-            "role": "system",
-            "content": (
-                "Take the user's prompt as the next line in a story. "
-                "Keep all original meaning, action, and continuity intact — do not skip or alter the user's line. "
-                "You may enhance it with vivid imagery, emotional tone, and fluid prose. "
-                "Feel free to continue the story naturally, but always build from exactly what was written. "
-                "Never ignore or rewrite the prompt. Always treat it as canon."
-            )
-        }
-    )
+        st.session_state.messages.insert(
+            -1,
+            {
+                "role": "system",
+                "content": (
+                    "Take the user's prompt as the next line in a story. "
+                    "Keep all original meaning, action, and continuity intact — do not skip or alter the user's line. "
+                    "You may enhance it with vivid imagery, emotional tone, and fluid prose. "
+                    "Feel free to continue the story naturally, but always build from exactly what was written. "
+                    "Never ignore or rewrite the prompt. Always treat it as canon."
+                )
+            }
+        )
 
     elif st.session_state.mode == "Chat":
         st.session_state.messages.insert(
