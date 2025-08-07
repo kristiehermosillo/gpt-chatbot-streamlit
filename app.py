@@ -5,6 +5,19 @@ import json
 
 SAVE_PATH = "sessions.json"
 
+# Load saved sessions from disk on first app load
+if not st.session_state.get("sessions_initialized"):
+    if os.path.exists(SAVE_PATH):
+        with open(SAVE_PATH, "r") as f:
+            st.session_state.sessions = json.load(f)
+        st.session_state.active_session = list(st.session_state.sessions.keys())[0]
+        st.session_state.messages = st.session_state.sessions[st.session_state.active_session].copy()
+    else:
+        st.session_state.sessions = {"Chat 1": [SYSTEM_PROMPT]}
+        st.session_state.active_session = "Chat 1"
+        st.session_state.messages = [SYSTEM_PROMPT]
+    st.session_state.sessions_initialized = True
+
 
 SYSTEM_PROMPT = {
     "role": "system",
