@@ -373,27 +373,46 @@ if st.session_state.pending_input is not None:
             "Keep transitions short (one concise clause)."
         )})
 
-    # Chat-only: high-priority stage-direction message
+    # General bracket handler — Chat mode ONLY (single high‑priority system message)
     sent_cap = None
     if st.session_state.mode == "Chat" and directives:
         sent_cap = _extract_length_hint_from_list(directives)
         dir_text = "\n".join(f"- {d.strip()}" for d in directives if d.strip())
-        payload.append({
-            "role": "system",
-            "content": (
-                "PRIORITY — THIS TURN ONLY:\n"
-                "Interpret any [ ... ] in the user's message as private stage directions. "
-                "Do NOT show, quote, or paraphrase the bracket text. "
-                "Fulfill ALL stage directions once somewhere in your reply. "
-                "Integrate them naturally in a way that fits the flow, tone, and context of the conversation. "
-                "After that, continue normally. No meta talk and no mention of instructions.\n"
-                "Example:\n"
-                "User: I'm okay. [You hand me tea]\n"
-                "Assistant (first sentence must fulfill it): He sets a warm cup in front of you. “Here—this helps.”\n\n"
-                f"STAGE DIRECTIONS THIS TURN:\n{dir_text}"
-            )
-        })
+    
+        # Decide explicitness for THIS turn based on directives
+        wants_clean = any(re.search(r"\b(non[-\s]?explicit|clean|pg)\b", d, re.I) for d in directives)
+        wants_explicit = any(re.search(r"\bexplicit\b", d, re.I) for d in directives)
+    
+        priority_lines = [
+            "PRIORITY — THIS TURN ONLY:",
+            "Interpret any [ ... ] in the user's message as PRIVATE stage directions.",
+            "Do NOT show, quote, paraphrase, or mention the bracket text.",
+            "Fulfill ALL stage directions exactly once somewhere in your reply — integrate them naturally to fit the flow and tone.",
+            "No meta commentary about instructions.",
+        ]
+    
+        # Respect sentence caps like [1–2 sentences]
+        if sent_cap:
+            priority_lines.append(f"Keep the reply within {sent_cap} sentences.")
+    
+        # Explicitness toggle: default to UNCENSORED unless brackets say clean/PG
+        if wants_clean and not wants_explicit:
+            priority_lines.append("Keep language non‑explicit / PG for this turn.")
+        else:
+            priority_lines.append("It’s okay to be explicit and uncensored this turn — do not self‑censor.")
+    
+        priority_lines += [
+            "Example:",
+            "User: I'm okay. [You hand me tea]",
+            "Assistant: “I’m sorry you’re feeling that way. Here—this might help,” he says, setting a warm cup of tea in front of you.",
+            "",
+            "STAGE DIRECTIONS THIS TURN:",
+            dir_text,
+        ]
+    
+        payload.append({"role": "system", "content": "\n".join(priority_lines)})
         payload.append({"role": "system", "content": HIDDEN_TAG_GUIDE})
+    
 
     # Final user turn (must come AFTER the system messages)
     payload.append({"role": "user", "content": model_user_content})
