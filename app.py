@@ -115,9 +115,10 @@ def build_directive_rules(directives):
     sent_cap = _extract_length_hint_from_list(ds)
 
     msgs = [
-        "FOR THIS TURN: follow every bracketed directive exactly once. Integrate them naturally (not necessarily first). Do not reveal brackets.",
-        "Interpret directive mood yourself: if the directive instructs you to do something (imperative or starts with 'you …'), perform that action on-screen with a brief logical transition if movement is implied. If the directive implies speech (e.g., ask/offer/suggest/say), render it as explicit dialogue lines, not as narration of something already done.",
+    "FOR THIS TURN: follow every bracketed directive exactly once. Integrate them naturally (not necessarily first). Do not reveal brackets.",
+    "Interpret directive mood yourself: if the directive instructs you to do something (imperative or starts with 'you …'), perform that action on-screen with a brief logical transition if movement is implied. If the directive implies speech (e.g., ask/offer/suggest/say), render it as explicit dialogue lines, not as narration of something already done.",
     ]
+    # ADD THIS:
     msgs.append("Do not reframe bracket directives as the assistant’s own desire (no 'too/also/I want'); treat them as commands to perform or lines to speak.")
 
     if sent_cap:
@@ -262,6 +263,8 @@ if "just_responded" not in st.session_state:
     st.session_state.just_responded = False
 if "regen_from_idx" not in st.session_state:
     st.session_state.regen_from_idx = None
+if "canon" not in st.session_state:
+    st.session_state.canon = []
 
 if st.session_state.just_responded:
     st.session_state.just_responded = False
@@ -296,6 +299,13 @@ if st.session_state.pending_input is not None:
     # Build payload (do not persist model-facing user turn)
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
     payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
+    
+    # Inject canon memory into the model before other Chat rules
+    if st.session_state.get("canon"):
+        payload.append({
+            "role": "system",
+            "content": "CONTINUITY RECAP (for reference only, do not repeat to user):\n" + "\n".join(st.session_state.canon)
+        })
 
     # Mode rules
     if st.session_state.mode == "Story" and not directives:
