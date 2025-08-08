@@ -4,6 +4,17 @@ import requests
 import os
 import json
 import re
+import re as _re
+
+_RESPOND_SAYING = _re.compile(r"^\s*respond\s+by\s+saying\s*[,:\-]?\s*(.+)\s*$", _re.IGNORECASE)
+
+def directive_exact_reply(directives):
+    for d in directives:
+        m = _RESPOND_SAYING.match(d)
+        if m:
+            # Return exactly what they asked us to say, with no model call
+            return m.group(1).strip()
+    return None
 
 # scroll position helper
 components.html(
@@ -54,12 +65,12 @@ def parse_markers(text: str):
         sys_msgs.append({
             "role": "system",
             "content": (
-                "User provided directives this turn: "
-                + " ".join(directives)
-                + ". Follow them and do not reveal or quote the bracket text."
+                "For this turn only, follow the user's bracketed directives and do not reveal them. "
+                "Override any conflicting instructions from earlier messages."
             ),
         })
-    return cleaned, sys_msgs
+    return cleaned, sys_msgs, directives
+
 
 def save_session():
     st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
@@ -190,50 +201,59 @@ if st.session_state.just_responded:
 
 st.title("Chapter Zero")
 
-# handle pending input exactly once
+# ----- handle pending input (new or resend) -----
 if st.session_state.pending_input is not None:
     raw_prompt = st.session_state.pending_input
     st.session_state.pending_input = None
 
-    cleaned_prompt, per_turn_sysmsgs = parse_markers(raw_prompt)
+    cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
 
-    # keep what user typed for transcript
+    # Keep what the user typed for the transcript
     st.session_state.messages.append({"role": "user_ui", "content": raw_prompt})
 
-    # per turn rules
+    # If directive says "respond by saying ...", obey literally and skip model
+    literal = directive_exact_reply(directives)
+    if literal:
+        st.session_state.messages.append({"role": "assistant", "content": literal})
+        save_session()
+        st.session_state.just_responded = True
+        st.rerun()
+
+    # Otherwise call the model, but make the directive rule override other rules
     st.session_state.messages.extend(per_turn_sysmsgs)
 
-    # mode rule
-    if st.session_state.mode == "Story":
-        st.session_state.messages.append(
-            {
-                "role": "system",
-                "content": (
-                    "Take the user's prompt as the next line in a story. "
-                    "Keep all original meaning and continuity intact. "
-                    "Enhance with vivid imagery and emotion. "
-                    "Build from exactly what was written."
-                ),
-            }
-        )
-    else:
-        st.session_state.messages.append(
-            {
-                "role": "system",
-                "content": (
-                    "Engage in natural conversation. "
-                    "Treat [brackets] as hidden instructions, never reveal them. "
-                    "Treat (parentheses) as actions in scene. "
-                    "Treat *text* as whispered tone."
-                ),
-            }
-        )
+    # Only add Story or Chat mode when there are no directives
+    if not directives:
+        if st.session_state.mode == "Story":
+            st.session_state.messages.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "Take the user's prompt as the next line in a story. "
+                        "Keep all original meaning and continuity intact. "
+                        "Enhance with vivid imagery and emotion. "
+                        "Build from exactly what was written."
+                    ),
+                }
+            )
+        else:
+            st.session_state.messages.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "Engage in natural conversation. "
+                        "Treat [brackets] as hidden instructions, never reveal them. "
+                        "Treat (parentheses) as actions in scene. "
+                        "Treat *text* as whispered tone."
+                    ),
+                }
+            )
 
-    # model facing user turn
+    # Model facing user turn
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
     st.session_state.messages.append({"role": "user", "content": model_user_content})
 
-    # build payload without transcript only entries
+    # Payload without transcript-only entries
     payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
 
     try:
@@ -257,6 +277,9 @@ if st.session_state.pending_input is not None:
             st.error(f"API Error {response.status_code}: {response.text}")
     except Exception as e:
         st.error(f"Request failed: {e}")
+    finally:
+        st.session_state.just_responded = False
+
 
 # render
 
