@@ -295,26 +295,26 @@ if st.session_state.pending_input is not None:
     cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
     st.write("DEBUG — directives found:", directives)
 
-    # If regenerating, reuse same bubble; else store a UI copy (CLEANED in the UI!)
+    # Show RAW (with brackets) in the UI; keep CLEANED + directives for the model
     if st.session_state.regen_from_idx is not None:
         reuse_idx = st.session_state.regen_from_idx
         st.session_state.messages = st.session_state.messages[:reuse_idx + 1]
-        # Overwrite the reused user bubble to the cleaned version and keep raw+directives for regen
         st.session_state.messages[reuse_idx] = {
             "role": "user_ui",
-            "content": cleaned_prompt,
-            "raw": raw_prompt,
-            "directives": directives,
+            "content": raw_prompt,          # UI shows exactly what user typed (with brackets)
+            "cleaned": cleaned_prompt,      # for model
+            "raw": raw_prompt,              # keep for edits/regens (backward‑compat)
+            "directives": directives,       # for model
         }
         st.session_state.regen_from_idx = None
     else:
         st.session_state.messages.append({
             "role": "user_ui",
-            "content": cleaned_prompt,  # shown to user (NO BRACKETS)
-            "raw": raw_prompt,          # hidden, for regen/edit
-            "directives": directives,   # hidden, for regen/rules
+            "content": raw_prompt,          # UI shows brackets
+            "cleaned": cleaned_prompt,      # for model
+            "raw": raw_prompt,
+            "directives": directives,
         })
-
 
     # Literal short-circuit
     literal = directive_exact_reply(directives)
@@ -451,10 +451,7 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_index = None
                 st.rerun()
     else:
-        to_show = msg["content"]
-        if display_role == "user":  # sanitize any legacy bracket leaks
-            to_show = parse_markers(to_show)[0]
-        st.chat_message(display_role).markdown(to_show)
+        st.chat_message(display_role).markdown(msg["content"])
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
