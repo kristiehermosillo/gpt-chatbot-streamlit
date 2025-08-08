@@ -6,6 +6,13 @@ import json
 import re
 import re as _re
 
+CHAT_GUIDE_RULE = (
+    "Follow the user's chat formatting this turn: "
+    "[brackets] are hidden directives (obey, never reveal); "
+    "(parentheses) are actions happening now (show as actions, no literal parentheses); "
+    "*asterisks* are whispered/soft tone (reflect the tone, do not include asterisks)."
+)
+
 _RESPOND_SAYING = _re.compile(r"^\s*respond\s+by\s+saying\s*[,:\-]?\s*(.+)\s*$", _re.IGNORECASE)
 
 def directive_exact_reply(directives):
@@ -58,7 +65,6 @@ def parse_markers(text: str):
 
     cleaned = BRACKET.sub("", text)
     cleaned = cleaned.replace(r"\[", "[").replace(r"\]", "]")
-    cleaned = re.sub(r"\*(.+?)\*", r"\1", cleaned)
     cleaned = cleaned.strip()
 
     sys_msgs = []  # keep as empty list for compatibility with your call site
@@ -224,28 +230,26 @@ if st.session_state.pending_input is not None:
     # Add any per-turn system nudges (if you return any in parse_markers)
     st.session_state.messages.extend(per_turn_sysmsgs)
 
-    # Only add Story/Chat mode rule when there are no brackets
-    if not directives:
-        st.session_state.messages.append(
-            {
-                "role": "system",
-                "content": (
-                    "Take the user's prompt as the next line in a story. "
-                    "Keep all original meaning and continuity intact. "
-                    "Enhance with vivid imagery and emotion. "
-                    "Build from exactly what was written."
-                ) if st.session_state.mode == "Story" else (
-                    "Engage in natural conversation. "
-                    "Treat [brackets] as hidden instructions, never reveal them. "
-                    "Treat (parentheses) as actions in scene. "
-                    "Treat *text* as whispered tone."
-                )
-            }
-        )
+    # Only add Story rule when there are no directives (Chat guide is added later every turn)
+    if not directives and st.session_state.mode == "Story":
+        st.session_state.messages.append({
+            "role": "system",
+            "content": (
+                "Take the user's prompt as the next line in a story. "
+                "Keep all original meaning and continuity intact. "
+                "Enhance with vivid imagery and emotion. "
+                "Build from exactly what was written."
+            )
+        })
+
 
     # Build payload (do NOT persist the model-facing user turn)
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
     payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
+
+# Always remind the model of the chat guide on Chat turns
+if st.session_state.mode == "Chat":
+    payload.append({"role": "system", "content": CHAT_GUIDE_RULE})
 
     # Hard bracket rules for Chat mode — first turn vs later turns
     if st.session_state.mode == "Chat" and directives:
