@@ -239,7 +239,11 @@ if st.session_state.pending_input is not None:
     # Add any per-turn system nudges (if you return any in parse_markers)
     st.session_state.messages.extend(per_turn_sysmsgs)
 
-    # Only add Story rule when there are no directives (Chat guide is added later every turn)
+    # Build payload (do NOT persist the model-facing user turn)
+    model_user_content = cleaned_prompt or "(no explicit user text this turn)"
+    payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
+
+# Only add Story rule when there are no directives (Chat guide is added later every turn)
     if st.session_state.mode == "Story" and not directives:
         payload.append({
             "role": "system",
@@ -250,11 +254,7 @@ if st.session_state.pending_input is not None:
                 "Build from exactly what was written."
             )
         })
-
-    # Build payload (do NOT persist the model-facing user turn)
-    model_user_content = cleaned_prompt or "(no explicit user text this turn)"
-    payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
-
+    
     # Always remind the model of the chat guide on Chat turns
     if st.session_state.mode == "Chat":
         payload.append({"role": "system", "content": CHAT_GUIDE_RULE})
@@ -273,20 +273,20 @@ if st.session_state.pending_input is not None:
         })
 
 
-    # Hard bracket rules for Chat mode — ALWAYS enforce this turn
+    # Hard bracket rules for Chat mode — ALWAYS enforce this turn (general + concise)
     if st.session_state.mode == "Chat" and directives:
         needs_bullets = "\n- " + "\n- ".join(d.strip() for d in directives if d.strip())
         rule = (
-            "FOR THIS TURN ONLY: The following bracketed directives are MANDATORY and override all earlier instructions. "
-            "Execute every directive exactly once, integrated naturally into the reply. "
-            "If a directive describes an action (e.g., 'you go to Starbucks and grab me a coffee'), perform that action on-screen. "
-            "If a directive implies speech (e.g., 'you ask how work was' or 'you say \"...\"'), speak that line as dialogue. "
-            "Do NOT reveal the brackets or mention rules. No meta-commentary. "
-            "Before ending, quickly self-check that each directive happened; if anything is missing, add one concise clause to fulfill it."
-            "Do not skip logical steps: if the directive implies moving/going somewhere, include a brief transition from the current place before continuing; do not contradict where we currently are."
+            "For this turn only: treat the bracketed directives as mandatory. "
+            "Follow them exactly, but adapt them so they make sense in the current scene and flow naturally. "
+            "Do not contradict established locations/events, and do not teleport—include a brief, logical transition if moving or changing scenes. "
+            "If a directive could imply new knowledge, consent, or a finished action, present it first as an offer/question or next step unless prior context clearly supports otherwise. "
+            "Do not reveal the brackets or mention rules. "
+            "Before ending, quickly self-check that each directive happened once; if anything is missing, add one concise clause to fulfill it."
             f"{needs_bullets}"
         )
         payload.append({"role": "system", "content": rule})
+
 
     # Final user turn for the model
     payload.append({"role": "user", "content": model_user_content})
