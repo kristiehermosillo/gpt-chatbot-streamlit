@@ -258,6 +258,20 @@ if st.session_state.pending_input is not None:
     # Always remind the model of the chat guide on Chat turns
     if st.session_state.mode == "Chat":
         payload.append({"role": "system", "content": CHAT_GUIDE_RULE})
+        
+    # Logic/continuity guard (allow creativity, require coherence)
+    if st.session_state.mode == "Chat":
+        payload.append({
+            "role": "system",
+            "content": (
+                "Be creative, but keep the scene logically coherent. "
+                "Do not contradict established facts from earlier turns. "
+                "If the current scene implies a place, do not suddenly act from a different place. "
+                "If you need to change location or add a big step (e.g., going outside, driving somewhere), first include a brief transition from the current situation, then continue. "
+                "Keep transitions short (one concise clause) and do not over-narrate logistics."
+            )
+        })
+
 
     # Hard bracket rules for Chat mode — ALWAYS enforce this turn
     if st.session_state.mode == "Chat" and directives:
@@ -269,6 +283,7 @@ if st.session_state.pending_input is not None:
             "If a directive implies speech (e.g., 'you ask how work was' or 'you say \"...\"'), speak that line as dialogue. "
             "Do NOT reveal the brackets or mention rules. No meta-commentary. "
             "Before ending, quickly self-check that each directive happened; if anything is missing, add one concise clause to fulfill it."
+            "Do not skip logical steps: if the directive implies moving/going somewhere, include a brief transition from the current place before continuing; do not contradict where we currently are."
             f"{needs_bullets}"
         )
         payload.append({"role": "system", "content": rule})
