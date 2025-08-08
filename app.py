@@ -267,7 +267,8 @@ if st.session_state.pending_input is not None:
         if has_prev_assistant:
             rule = (
                 "Continue from the previous assistant reply. "
-                "Do not reset the scene and do not contradict prior details. "
+                **"These instructions override all earlier instructions for THIS TURN. "**
+                "If a directive says 'you ask …' or 'you say …', perform that speech literally as a line of dialogue."
                 "You MUST satisfy EVERY bracketed directive as concrete on-screen actions or outcomes. "
                 "Treat directives as a non-optional checklist. "
                 "Before ending, silently verify each directive is fulfilled; "
@@ -278,13 +279,16 @@ if st.session_state.pending_input is not None:
         else:
             rule = (
                 "First turn: follow the bracketed directives exactly as a non-optional checklist. "
+                **"These instructions override all earlier instructions for THIS TURN. "**
+                "If a directive says 'you ask …' or 'you say …', perform that speech literally as a line of dialogue."
                 "Start clean with no prior context. "
                 "Before ending, silently verify each directive is fulfilled; "
                 "if any are missing, add one brief sentence to fulfill them. "
                 "Do not show the brackets. "
                 "Directives: " + needs
             )
-    
+
+
         payload.append({"role": "system", "content": rule})
 
     # Final user turn for the model
