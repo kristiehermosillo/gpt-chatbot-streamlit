@@ -5,6 +5,21 @@ import os
 import json
 import re
 import re as _re
+import re
+
+BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")  # non-nested [ ... ]
+
+def extract_stage_directions(text: str):
+    """Returns (clean_text_without_brackets, list_of_stage_notes)."""
+    notes = []
+    def _collect(m):
+        inner = m.group(1).strip()
+        if inner:
+            notes.append(inner)
+        return ""  # remove bracketed text from visible message
+    clean = BRACKET_RE.sub(_collect, text)
+    clean = re.sub(r"[ \t]{2,}", " ", clean).strip()
+    return clean, notes
 
 # ---------------- UI helpers ----------------
 components.html(
