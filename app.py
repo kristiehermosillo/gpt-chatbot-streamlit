@@ -62,19 +62,28 @@ def parse_markers(text: str):
     cleaned = cleaned.strip()
 
     sys_msgs = []
-    if directives:
-        sys_msgs.append({
+    # Bracketed directives: first-turn vs later turns
+if st.session_state.mode == "Chat" and directives:
+    if len([m for m in st.session_state.messages if m["role"] == "assistant"]) == 0:
+        # First assistant turn — no "continue" rule
+        st.session_state.messages.append({
             "role": "system",
             "content": (
-                "For this turn only, treat the user's bracketed text as hard requirements. "
-                "Do not reveal the brackets. "
-                "If a directive describes an event, that event must occur in the reply."
+                "For this turn only, follow the bracketed directives exactly. "
+                "Treat them as the user's full intent for the first turn of the chat. "
+                "Do not reference any prior context."
             )
         })
-        sys_msgs.append({
+    else:
+        # Later turns — safe to continue
+        st.session_state.messages.append({
             "role": "system",
-            "content": "Bracket directives for this turn: " + " ".join(directives)
+            "content": (
+                "For this turn only, follow the bracketed directives exactly and do not reveal them. "
+                "Blend them into the ongoing conversation naturally, continuing from the last assistant reply."
+            )
         })
+
 
     return cleaned, sys_msgs, directives
 
