@@ -283,27 +283,70 @@ if st.session_state.pending_input is not None:
             )
         })
 
-    # --- Bracket directives (do them this turn, not necessarily first)
-    if st.session_state.mode == "Chat" and directives:
-        todo = "\n".join(f"- {d.strip()}" for d in directives if d.strip())
-    
-        # Short rule: what to do and how
+ # --- Bracket directives (do them this turn, not necessarily first)
+if st.session_state.mode == "Chat" and directives:
+    # Build the plain checklist (shown last so it's salient)
+    todo = "\n".join(f"- {d.strip()}" for d in directives if d.strip())
+
+    # Heuristics: if a directive says offer / ask / suggest, force one explicit line of dialogue
+    def _speech_assertions(ds):
+        reqs = []
+        for raw in ds:
+            d = raw.strip().lower()
+            # OFFER
+            if "offer" in d:
+                # try to grab the object of the offer if present
+                m = re.search(r"offer to (buy|get|grab|bring)\s+(.*)", d, re.I)
+                thing = m.group(2).strip() if m else "it"
+                reqs.append(
+                    f'Include one explicit sentence of dialogue that is an OFFER, e.g.: '
+                    f'"Want me to grab you {thing}?" or "Can I buy you {thing}?"'
+                )
+            # ASK
+            if re.search(r"\bask\b", d):
+                m = re.search(r"ask\s+(.*)", d, re.I)
+                topic = m.group(1).strip() if m else ""
+                reqs.append(
+                    'Include one explicit sentence of dialogue that is a QUESTION (an ask), '
+                    f'e.g.: "How was {topic}?"' if topic else
+                    'Include one explicit sentence of dialogue that is a QUESTION.'
+                )
+            # SUGGEST
+            if "suggest" in d:
+                reqs.append(
+                    'Include one explicit sentence of dialogue that is a SUGGESTION, '
+                    'e.g.: "We could do X if you’d like."'
+                )
+        return reqs
+
+    must_say = _speech_assertions(directives)
+    if must_say:
         payload.append({
             "role": "system",
             "content": (
-                "THIS TURN: obey every bracketed directive exactly once. "
-                "Integrate them naturally anywhere in the reply (not necessarily first). "
-                "Preserve verb mood: if a directive says 'offer/ask/suggest', present it as a proposal/question "
-                "(do NOT treat it as already done); if it is an imperative (go/bring/do), perform that action on screen. "
-                "Keep continuity; if moving to a new place, include a brief transition. Do not reveal brackets."
+                "Include the following explicit speech acts exactly once each (you may place them anywhere that flows):\n"
+                + "\n".join(f"- {r}" for r in must_say)
             )
         })
-    
-        # Put the plain checklist LAST so it’s most salient
-        payload.append({
-            "role": "system",
-            "content": "DIRECTIVES THIS TURN:\n" + todo
-        })
+
+    # Short rule: what to do and how
+    payload.append({
+        "role": "system",
+        "content": (
+            "THIS TURN: obey every bracketed directive exactly once. "
+            "Integrate them naturally anywhere in the reply (not necessarily first). "
+            "Preserve verb mood: if a directive says 'offer/ask/suggest', present it as actual spoken dialogue "
+            "(do NOT treat it as already done); if it is an imperative (go/bring/do), perform that action on screen. "
+            "Keep continuity; if moving to a new place, include a brief transition. Do not reveal brackets."
+        )
+    })
+
+    # Put the plain checklist LAST so it’s most salient
+    payload.append({
+        "role": "system",
+        "content": "DIRECTIVES THIS TURN:\n" + todo
+    })
+
     
         
     # Final user turn for the model
