@@ -261,8 +261,9 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
     # parse markers into per-turn system messages; clean visible user text
     cleaned_prompt, per_turn_sysmsgs = parse_markers(raw_prompt)
 
-    # append visible user message (allow empty if only directives were sent)
-    st.session_state.messages.append({"role": "user", "content": cleaned_prompt})
+    # append visible user message; if only directives were sent, show a small placeholder
+    visible_content = cleaned_prompt if cleaned_prompt else "_(directive applied)_"
+    st.session_state.messages.append({"role": "user", "content": visible_content})
 
     # insert mode instruction just before user's message
     if st.session_state.mode == "Story":
