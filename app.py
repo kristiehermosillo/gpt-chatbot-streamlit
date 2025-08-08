@@ -6,6 +6,12 @@ import json
 import re
 import re as _re
 
+HIDDEN_TAG_GUIDE = (
+    "If a user turn contains <hidden>...</hidden>, treat that content as private stage directions. "
+    "Absolutely do not quote, paraphrase, or mention it. Convert it into natural, in‑scene action or dialogue "
+    "exactly once, then continue the reply normally."
+)
+
 BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")  # non-nested [ ... ]
 
 def extract_stage_directions(text: str):
@@ -324,7 +330,11 @@ if st.session_state.pending_input is not None:
         st.session_state.just_responded = True
         st.rerun()
 
-    # Build payload (do not persist model-facing user turn)
+    # Build the user message for the model (prepend hidden directions in Chat mode)
+    if st.session_state.mode == "Chat" and directives:
+        hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
+        model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
+    else:
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
     payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
     
@@ -373,7 +383,11 @@ if st.session_state.pending_input is not None:
                 f"STAGE DIRECTIONS:\n{dir_text}"
             )
         })
-    
+        payload.append({
+        "role": "system",
+        "content": HIDDEN_TAG_GUIDE
+    })
+
     # Final user turn
     payload.append({"role": "user", "content": model_user_content})
 
