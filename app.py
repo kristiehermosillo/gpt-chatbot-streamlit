@@ -342,33 +342,33 @@ if st.session_state.mode == "Chat" and directives:
 # Final user turn for the model
 payload.append({"role": "user", "content": model_user_content})
 
-try:
-    with st.spinner("Writing..."):
-        resp = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "HTTP-Referer": referer_url,
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "messages": payload,
-                "temperature": 0.3,
-            },
-        )
-    if resp.status_code == 200:
-        reply = resp.json()["choices"][0]["message"]["content"]
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        save_session()
-        st.session_state.just_responded = True
-        st.rerun()
-    else:
-        st.error(f"API Error {resp.status_code}: {resp.text}")
-except Exception as e:
-    st.error(f"Request failed: {e}")
-finally:
-    st.session_state.just_responded = False
+    try:
+        with st.spinner("Writing..."):
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "HTTP-Referer": referer_url,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": payload,
+                    "temperature": 0.3,
+                },
+            )
+        if resp.status_code == 200:
+            reply = resp.json()["choices"][0]["message"]["content"]
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            save_session()
+            st.session_state.just_responded = True
+            st.rerun()
+        else:
+            st.error(f"API Error {resp.status_code}: {resp.text}")
+    except Exception as e:
+        st.error(f"Request failed: {e}")
+    finally:
+        st.session_state.just_responded = False
 
 
 # render
