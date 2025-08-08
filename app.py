@@ -272,7 +272,6 @@ if st.session_state.pending_input is not None:
             )
         })
 
-
     # --- Bracket directives (do them this turn, not necessarily first)
     if st.session_state.mode == "Chat" and directives:
         todo = "\n".join(f"- {d.strip()}" for d in directives if d.strip())
@@ -282,10 +281,10 @@ if st.session_state.pending_input is not None:
             "role": "system",
             "content": (
                 "THIS TURN: obey every bracketed directive exactly once. "
-                "Integrate them naturally wherever appropriate in the reply (not necessarily first). "
+                "Integrate them naturally anywhere in the reply (not necessarily first). "
                 "Preserve verb mood: if a directive says 'offer/ask/suggest', present it as a proposal/question "
-                "(do NOT treat it as already done); if it is an imperative (go/bring/do), perform the action on screen. "
-                "Keep continuity; use a brief transition if moving to a new place. Do not reveal brackets."
+                "(do NOT treat it as already done); if it is an imperative (go/bring/do), perform that action on screen. "
+                "Keep continuity; if moving to a new place, include a brief transition. Do not reveal brackets."
             )
         })
     
@@ -295,6 +294,7 @@ if st.session_state.pending_input is not None:
             "content": "DIRECTIVES THIS TURN:\n" + todo
         })
     
+        
     # Final user turn for the model
     payload.append({"role": "user", "content": model_user_content})
 
