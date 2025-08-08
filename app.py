@@ -208,10 +208,10 @@ if st.session_state.pending_input is not None:
 
     cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
 
-    # Keep what the user typed for the transcript
+    # 1) keep exactly what the user typed for the transcript
     st.session_state.messages.append({"role": "user_ui", "content": raw_prompt})
 
-    # If directive says "respond by saying ...", obey literally and skip model
+    # 2) literal short circuit, if you added that helper
     literal = directive_exact_reply(directives)
     if literal:
         st.session_state.messages.append({"role": "assistant", "content": literal})
@@ -219,46 +219,38 @@ if st.session_state.pending_input is not None:
         st.session_state.just_responded = True
         st.rerun()
 
-    # Otherwise call the model, but make the directive rule override other rules
+    # 3) per turn rules
     st.session_state.messages.extend(per_turn_sysmsgs)
 
-    # Only add Story or Chat mode when there are no directives
+    # 4) only add Story or Chat mode when there are no directives
     if not directives:
-        if st.session_state.mode == "Story":
-            st.session_state.messages.append(
-                {
-                    "role": "system",
-                    "content": (
-                        "Take the user's prompt as the next line in a story. "
-                        "Keep all original meaning and continuity intact. "
-                        "Enhance with vivid imagery and emotion. "
-                        "Build from exactly what was written."
-                    ),
-                }
-            )
-        else:
-            st.session_state.messages.append(
-                {
-                    "role": "system",
-                    "content": (
-                        "Engage in natural conversation. "
-                        "Treat [brackets] as hidden instructions, never reveal them. "
-                        "Treat (parentheses) as actions in scene. "
-                        "Treat *text* as whispered tone."
-                    ),
-                }
-            )
+        st.session_state.messages.append(
+            {
+                "role": "system",
+                "content": (
+                    "Take the user's prompt as the next line in a story. "
+                    "Keep all original meaning and continuity intact. "
+                    "Enhance with vivid imagery and emotion. "
+                    "Build from exactly what was written."
+                )
+                if st.session_state.mode == "Story"
+                else (
+                    "Engage in natural conversation. "
+                    "Treat [brackets] as hidden instructions, never reveal them. "
+                    "Treat (parentheses) as actions in scene. "
+                    "Treat *text* as whispered tone."
+                )
+            }
+        )
 
-    # Model facing user turn
+    # 5) build the API payload WITHOUT persisting the model user turn
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
-    st.session_state.messages.append({"role": "user", "content": model_user_content})
-
-    # Payload without transcript-only entries
     payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
+    payload.append({"role": "user", "content": model_user_content})
 
     try:
         with st.spinner("Writing..."):
-            response = requests.post(
+            resp = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
                     "Authorization": f"Bearer {api_key}",
@@ -267,18 +259,19 @@ if st.session_state.pending_input is not None:
                 },
                 json={"model": model, "messages": payload},
             )
-        if response.status_code == 200:
-            reply = response.json()["choices"][0]["message"]["content"]
+        if resp.status_code == 200:
+            reply = resp.json()["choices"][0]["message"]["content"]
             st.session_state.messages.append({"role": "assistant", "content": reply})
             save_session()
             st.session_state.just_responded = True
             st.rerun()
         else:
-            st.error(f"API Error {response.status_code}: {response.text}")
+            st.error(f"API Error {resp.status_code}: {resp.text}")
     except Exception as e:
         st.error(f"Request failed: {e}")
     finally:
         st.session_state.just_responded = False
+
 
 
 # render
