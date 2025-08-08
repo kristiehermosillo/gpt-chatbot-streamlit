@@ -332,16 +332,12 @@ if st.session_state.pending_input is not None:
         st.rerun()
 
     # Build the user message for the model (prepend hidden directions in Chat mode)
-    if st.session_state.mode == "Chat" and directives:
-        hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
-        model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
-    else:
-        # Build the user message for the model (prepend hidden directions in Chat mode)
         if st.session_state.mode == "Chat" and directives:
             hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
             model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
         else:
             model_user_content = cleaned_prompt or "(no explicit user text this turn)"
+
         payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
     
     # Inject canon memory into the model before other Chat rules
