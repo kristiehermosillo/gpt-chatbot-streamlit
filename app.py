@@ -259,36 +259,18 @@ if st.session_state.pending_input is not None:
     if st.session_state.mode == "Chat":
         payload.append({"role": "system", "content": CHAT_GUIDE_RULE})
 
-    # Hard bracket rules for Chat mode — first turn vs later turns
+    # Hard bracket rules for Chat mode — ALWAYS enforce this turn
     if st.session_state.mode == "Chat" and directives:
-        has_prev_assistant = any(m["role"] == "assistant" for m in st.session_state.messages)
-        needs = "; ".join(d.strip() for d in directives if d.strip())
-    
-        if has_prev_assistant:
-            rule = (
-                "Continue from the previous assistant reply. "
-                "These instructions override all earlier instructions for THIS TURN. "
-                "If a directive says 'you ask …' or 'you say …', perform that speech literally as a line of dialogue."
-                "You MUST satisfy EVERY bracketed directive as concrete on-screen actions or outcomes. "
-                "Treat directives as a non-optional checklist. "
-                "Before ending, silently verify each directive is fulfilled; "
-                "if any are missing, add one brief sentence to fulfill them. "
-                "Do not explain the rules and do not show the brackets. "
-                "Directives: " + needs
-            )
-        else:
-            rule = (
-                "First turn: follow the bracketed directives exactly as a non-optional checklist. "
-                "These instructions override all earlier instructions for THIS TURN. "
-                "If a directive says 'you ask …' or 'you say …', perform that speech literally as a line of dialogue."
-                "Start clean with no prior context. "
-                "Before ending, silently verify each directive is fulfilled; "
-                "if any are missing, add one brief sentence to fulfill them. "
-                "Do not show the brackets. "
-                "Directives: " + needs
-            )
-
-
+        needs_bullets = "\n- " + "\n- ".join(d.strip() for d in directives if d.strip())
+        rule = (
+            "FOR THIS TURN ONLY: The following bracketed directives are MANDATORY and override all earlier instructions. "
+            "Execute every directive exactly once, integrated naturally into the reply. "
+            "If a directive describes an action (e.g., 'you go to Starbucks and grab me a coffee'), perform that action on-screen. "
+            "If a directive implies speech (e.g., 'you ask how work was' or 'you say \"...\"'), speak that line as dialogue. "
+            "Do NOT reveal the brackets or mention rules. No meta-commentary. "
+            "Before ending, quickly self-check that each directive happened; if anything is missing, add one concise clause to fulfill it."
+            f"{needs_bullets}"
+        )
         payload.append({"role": "system", "content": rule})
 
     # Final user turn for the model
