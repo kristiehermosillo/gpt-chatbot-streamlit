@@ -178,14 +178,14 @@ with st.sidebar.expander("🗑️ Manage Chats"):
         st.rerun()
 
     if st.button("⚠️ Delete ALL conversations"):
-    base = _base_for(st.session_state.get("mode", "Chat"))
-    st.session_state.sessions = {"Chat 1": [base]}
-    st.session_state.active_session = "Chat 1"
-    st.session_state.messages = [base]
-    if os.path.exists(SAVE_PATH):
-        os.remove(SAVE_PATH)
-    save_session()
-    st.rerun()
+        base = _base_for(st.session_state.get("mode", "Chat"))
+        st.session_state.sessions = {"Chat 1": [base]}
+        st.session_state.active_session = "Chat 1"
+        st.session_state.messages = [base]
+        if os.path.exists(SAVE_PATH):
+            os.remove(SAVE_PATH)
+        save_session()
+        st.rerun()
 
 with st.sidebar.expander("📘 Chat Input Guide"):
     st.markdown("""
