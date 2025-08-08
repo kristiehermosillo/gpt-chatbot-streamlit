@@ -263,12 +263,24 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
 
     # append visible user message; if only directives were sent, show a small placeholder
     visible_content = cleaned_prompt if cleaned_prompt else "_(directive applied)_"
-    st.session_state.messages.append({"role": "user", "content": visible_content})
+    # ----- handle pending input (new or resend) -----
+if st.session_state.pending_input is not None and not st.session_state.just_responded:
+    raw_prompt = st.session_state.pending_input
+    st.session_state.pending_input = None
 
-    # insert mode instruction just before user's message
+    # parse markers into per-turn system messages; clean visible user text for the model
+    cleaned_prompt, per_turn_sysmsgs = parse_markers(raw_prompt)
+
+    # 1) SHOW exactly what the user typed in the transcript (do NOT store it as the model user msg)
+    st.chat_message("user").markdown(raw_prompt)
+
+    # 2) Queue per-turn rule(s) so the model follows [] / () / * * every turn
+    for sysmsg in per_turn_sysmsgs:
+        st.session_state.messages.append({"role": "system", "content": sysmsg})
+
+    # 3) Add the mode instruction for this turn
     if st.session_state.mode == "Story":
-        st.session_state.messages.insert(
-            -1,
+        st.session_state.messages.append(
             {
                 "role": "system",
                 "content": (
@@ -277,24 +289,28 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
                     "You may enhance it with vivid imagery, emotional tone, and fluid prose. "
                     "Feel free to continue the story naturally, but always build from exactly what was written. "
                     "Never ignore or rewrite the prompt. Always treat it as canon."
-                )
+                ),
             }
         )
     elif st.session_state.mode == "Chat":
-        st.session_state.messages.insert(
-            -1,
+        st.session_state.messages.append(
             {
                 "role": "system",
                 "content": (
                     "Engage in natural, back-and-forth conversation as the character or assistant.\n\n"
                     "Follow these formatting rules from the user:\n"
-                    "- Text inside [brackets] is hidden intent; react to it but do not reveal it.\n"
-                    "- Text inside (parentheses) describes physical actions happening now.\n"
-                    "- Text inside asterisks, like *this*, is whispered; reflect a softer tone.\n\n"
-                    "Never skip or ignore the user's message. Always build with continuity."
-                )
+                    "- Text inside [brackets] is instruction or intent. React to it, but don’t say it aloud.\n"
+                    "- Text inside (parentheses) describes physical actions. Treat them as happening in the scene.\n"
+                    "- Text inside asterisks, like *this*, is whispered. Keep that tone.\n\n"
+                    "Never skip or ignore the user’s message. Always build with continuity."
+                ),
             }
         )
+
+    # 4) Finally, send the cleaned user content to the model (so it won't echo directives)
+    model_user_content = cleaned_prompt.strip() or "(no explicit user text this turn)"
+    st.session_state.messages.append({"role": "user", "content": model_user_content})
+
 
     # insert per-turn system messages (from markers) just before the user's prompt
     for sysm in reversed(per_turn_sysmsgs):
