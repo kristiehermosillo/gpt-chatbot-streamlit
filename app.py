@@ -298,7 +298,7 @@ for i, msg in enumerate(st.session_state.messages):
         st.session_state.edit_text = st.text_area("Edit message", st.session_state.edit_text, key=f"edit_{i}")
         c1, c2 = st.columns([1, 1])
         with c1:
-            if st.button("Resend", key=f"resend_{i}"):
+            if st.button("↩️ Resend", key=f"resend_{i}"):
                 st.session_state.messages = st.session_state.messages[:i+1]
                 st.session_state.messages[i]["content"] = st.session_state.edit_text
                 st.session_state.pending_input = st.session_state.edit_text
@@ -306,20 +306,20 @@ for i, msg in enumerate(st.session_state.messages):
                 save_session()
                 st.rerun()
         with c2:
-            if st.button("Cancel", key=f"cancel_{i}"):
+            if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
                 st.rerun()
     else:
         st.chat_message(display_role).markdown(msg["content"])
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
-            if st.button("Edit", key=f"edit_{i}"):
+            if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = msg["content"]
                 st.rerun()
 
 # regenerate using last user like turn
 if last_user_like_idx is not None and st.session_state.edit_index is None and st.session_state.pending_input is None:
-    if st.button("Regenerate Last Response"):
+    if st.button("🔄 Regenerate Last Response"):
         if last_user_like_idx + 1 < len(st.session_state.messages) and st.session_state.messages[last_user_like_idx + 1]["role"] == "assistant":
             st.session_state.messages = st.session_state.messages[:last_user_like_idx + 1]
         st.session_state.pending_input = st.session_state.messages[last_user_like_idx]["content"]
