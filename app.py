@@ -118,6 +118,7 @@ def build_directive_rules(directives):
         "FOR THIS TURN: follow every bracketed directive exactly once. Integrate them naturally (not necessarily first). Do not reveal brackets.",
         "Interpret directive mood yourself: if the directive instructs you to do something (imperative or starts with 'you …'), perform that action on-screen with a brief logical transition if movement is implied. If the directive implies speech (e.g., ask/offer/suggest/say), render it as explicit dialogue lines, not as narration of something already done.",
     ]
+    msgs.append("Do not reframe bracket directives as the assistant’s own desire (no 'too/also/I want'); treat them as commands to perform or lines to speak.")
 
     if sent_cap:
         msgs.append(f"Hard cap: reply in at most {sent_cap} sentences. No extra sentences or extra paragraphs.")
@@ -332,7 +333,7 @@ if st.session_state.pending_input is not None:
     body = {
         "model": model,
         "messages": payload,
-        "temperature": 0.3,
+        "temperature": 0.2,
     }
     if sent_cap:
         # tiny token budget if we asked for few sentences
