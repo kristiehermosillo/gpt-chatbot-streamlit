@@ -247,9 +247,9 @@ if st.session_state.pending_input is not None:
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
     payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
 
-# Always remind the model of the chat guide on Chat turns
-if st.session_state.mode == "Chat":
-    payload.append({"role": "system", "content": CHAT_GUIDE_RULE})
+    # Always remind the model of the chat guide on Chat turns
+    if st.session_state.mode == "Chat":
+        payload.append({"role": "system", "content": CHAT_GUIDE_RULE})
 
     # Hard bracket rules for Chat mode — first turn vs later turns
     if st.session_state.mode == "Chat" and directives:
