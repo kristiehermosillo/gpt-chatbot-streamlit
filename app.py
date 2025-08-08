@@ -258,50 +258,42 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
     raw_prompt = st.session_state.pending_input
     st.session_state.pending_input = None
 
-    # Parse markers for per turn rules and cleaned content
     cleaned_prompt, per_turn_sysmsgs = parse_markers(raw_prompt)
 
-    # Persist an exact copy of what the user typed so it survives reruns
+    # Persist exact typed text for transcript
     st.session_state.messages.append({"role": "user_ui", "content": raw_prompt})
 
-    # Add per turn system messages from parse_markers
-    # Note: your parse_markers already returns dicts with role and content
+    # Per turn rules
     st.session_state.messages.extend(per_turn_sysmsgs)
 
-    # Add the mode instruction for this turn
-    if st.session_state.mode == "Story":
-        st.session_state.messages.append(
-            {
-                "role": "system",
-                "content": (
-                    "Take the user's prompt as the next line in a story. "
-                    "Keep all original meaning, action, and continuity intact — do not skip or alter the user's line. "
-                    "You may enhance it with vivid imagery, emotional tone, and fluid prose. "
-                    "Feel free to continue the story naturally, but always build from exactly what was written. "
-                    "Never ignore or rewrite the prompt. Always treat it as canon."
-                ),
-            }
-        )
-    else:
-        st.session_state.messages.append(
-            {
-                "role": "system",
-                "content": (
-                    "Engage in natural, back and forth conversation as the character or assistant.\n\n"
-                    "Follow these formatting rules from the user:\n"
-                    "- Text inside [brackets] is instruction or intent. React to it, but do not say it aloud.\n"
-                    "- Text inside (parentheses) describes physical actions. Treat them as happening in the scene.\n"
-                    "- Text inside asterisks, like *this*, is whispered. Keep that tone.\n\n"
-                    "Never skip or ignore the user’s message. Always build with continuity."
-                ),
-            }
-        )
+    # Mode rule
+    st.session_state.messages.append(
+        {
+            "role": "system",
+            "content": (
+                "Take the user's prompt as the next line in a story. "
+                "Keep all original meaning, action, and continuity intact — do not skip or alter the user's line. "
+                "You may enhance it with vivid imagery, emotional tone, and fluid prose. "
+                "Feel free to continue the story naturally, but always build from exactly what was written. "
+                "Never ignore or rewrite the prompt. Always treat it as canon."
+            )
+            if st.session_state.mode == "Story"
+            else (
+                "Engage in natural conversation as the character or assistant.\n\n"
+                "Follow these formatting rules from the user:\n"
+                "- Text inside [brackets] is instruction or intent. React to it, but do not say it aloud.\n"
+                "- Text inside (parentheses) describes physical actions. Treat them as happening in the scene.\n"
+                "- Text inside asterisks, like *this*, is whispered. Keep that tone.\n\n"
+                "Never skip or ignore the user’s message. Always build with continuity."
+            )
+        }
+    )
 
-    # Add the actual model facing user message
+    # Model facing user content. Empty if brackets only.
     model_user_content = cleaned_prompt.strip() or "(no explicit user text this turn)"
     st.session_state.messages.append({"role": "user", "content": model_user_content})
 
-    # Build payload while excluding transcript only entries
+    # Build payload without transcript only entries
     to_send = [m for m in st.session_state.messages if m["role"] != "user_ui"]
 
     try:
@@ -323,52 +315,66 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
             st.rerun()
         else:
             st.error(f"API Error {response.status_code}: {response.text}")
-            st.session_state.just_responded = False
-    except Exception as e:
-        st.error(f"Request failed: {e}")
+    finally:
+        # Always clear this so the input box comes back
         st.session_state.just_responded = False
 
 
+
 # ----- render chat -----
-last_user_idx = max((i for i, m in enumerate(st.session_state.messages) if m["role"] == "user"), default=None)
+def is_placeholder(msg):
+    return msg["role"] == "user" and msg["content"] == "(no explicit user text this turn)"
+
+# The last user like turn, preferring user_ui if present
+last_user_like_idx = max(
+    (i for i, m in enumerate(st.session_state.messages) if m["role"] in ("user_ui", "user")),
+    default=None
+)
 
 for i, msg in enumerate(st.session_state.messages):
     role = msg["role"]
     if role == "system":
         continue
 
-    display_role = "user" if role == "user_ui" else role
+    # Do not show the model facing placeholder bubble
+    if is_placeholder(msg):
+        continue
 
-    if role == "user" and st.session_state.edit_index == i:
+    display_role = "user" if role in ("user_ui", "user") else role
+
+    editable_turn = role in ("user_ui", "user")
+
+    if editable_turn and st.session_state.edit_index == i:
         st.session_state.edit_text = st.text_area("✏️ Edit message", st.session_state.edit_text, key=f"edit_{i}")
-
-        col1, col2 = st.columns([1, 1])
-        with col1:
+        c1, c2 = st.columns([1, 1])
+        with c1:
             if st.button("↩️ Resend", key=f"resend_{i}"):
-                st.session_state.messages[i]["content"] = st.session_state.edit_text
+                # Trim conversation at this turn and resend edited text through the normal path
                 st.session_state.messages = st.session_state.messages[:i+1]
+                st.session_state.messages[i]["content"] = st.session_state.edit_text
                 st.session_state.pending_input = st.session_state.edit_text
                 st.session_state.edit_index = None
                 save_session()
                 st.rerun()
-        with col2:
+        with c2:
             if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
                 st.rerun()
     else:
         st.chat_message(display_role).markdown(msg["content"])
-        if role == "user" and i == last_user_idx and st.session_state.edit_index is None:
+        if editable_turn and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = msg["content"]
                 st.rerun()
 
+
 # Regenerate last response
-if last_user_idx is not None and st.session_state.edit_index is None and st.session_state.pending_input is None:
+if last_user_like_idx is not None and st.session_state.edit_index is None and st.session_state.pending_input is None:
     if st.button("🔄 Regenerate Last Response"):
-        if last_user_idx + 1 < len(st.session_state.messages) and st.session_state.messages[last_user_idx + 1]["role"] == "assistant":
-            st.session_state.messages = st.session_state.messages[:last_user_idx + 1]
-        st.session_state.pending_input = st.session_state.messages[last_user_idx]["content"]
+        if last_user_like_idx + 1 < len(st.session_state.messages) and st.session_state.messages[last_user_like_idx + 1]["role"] == "assistant":
+            st.session_state.messages = st.session_state.messages[:last_user_like_idx + 1]
+        st.session_state.pending_input = st.session_state.messages[last_user_like_idx]["content"]
         st.rerun()
 
 # input box
