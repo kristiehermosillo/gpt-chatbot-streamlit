@@ -279,12 +279,14 @@ if st.session_state.pending_input is not None:
         rule = (
             "For this turn only: treat the bracketed directives as mandatory. "
             "Follow them exactly, but adapt them so they make sense in the current scene and flow naturally. "
+            "Respect verb mood: if a directive is an offer/suggestion/request (e.g., 'you offer…', 'you ask…', 'you suggest…'), express it as a proposal or question rather than performing it as a completed action; "
+            "if it is an imperative action (e.g., 'go/grab/bring'), perform the action on screen. "
             "Do not contradict established locations/events, and do not teleport—include a brief, logical transition if moving or changing scenes. "
-            "If a directive could imply new knowledge, consent, or a finished action, present it first as an offer/question or next step unless prior context clearly supports otherwise. "
             "Do not reveal the brackets or mention rules. "
             "Before ending, quickly self-check that each directive happened once; if anything is missing, add one concise clause to fulfill it."
             f"{needs_bullets}"
         )
+
         payload.append({"role": "system", "content": rule})
 
 
