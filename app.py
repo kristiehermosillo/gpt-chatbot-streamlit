@@ -61,32 +61,8 @@ def parse_markers(text: str):
     cleaned = re.sub(r"\*(.+?)\*", r"\1", cleaned)
     cleaned = cleaned.strip()
 
-    sys_msgs = []
-    # Bracketed directives: first-turn vs later turns
-    if st.session_state.mode == "Chat" and directives:
-        if len([m for m in st.session_state.messages if m["role"] == "assistant"]) == 0:
-            # First assistant turn — no "continue" rule
-            st.session_state.messages.append({
-                "role": "system",
-                "content": (
-                    "For this turn only, follow the bracketed directives exactly. "
-                    "Treat them as the user's full intent for the first turn of the chat. "
-                    "Do not reference any prior context."
-                )
-            })
-        else:
-            # Later turns — safe to continue
-            st.session_state.messages.append({
-                "role": "system",
-                "content": (
-                    "For this turn only, follow the bracketed directives exactly and do not reveal them. "
-                    "Blend them into the ongoing conversation naturally, continuing from the last assistant reply."
-                )
-            })
-    
-    
-        return cleaned, sys_msgs, directives
-
+    sys_msgs = []  # keep as empty list for compatibility with your call site
+    return cleaned, sys_msgs, directives
 
 def save_session():
     st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
@@ -271,25 +247,36 @@ if st.session_state.pending_input is not None:
         )
 
     # 5) build the API payload WITHOUT persisting the model user turn
-    model_user_content = cleaned_prompt or "(no explicit user text this turn)"
-    payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
-    
-    # Make brackets non optional in Chat mode and keep continuity
-    if st.session_state.mode == "Chat" and directives:
-        needs = "; ".join(d.strip() for d in directives if d.strip())
-        payload.append({
-            "role": "system",
-            "content": (
-                "Continue from the previous assistant reply. "
-                "Do not reset the scene and do not contradict prior details. "
-                "You must include every bracketed directive as an on screen event in the reply. "
-                "Integrate naturally into the current situation. "
-                "Do not explain the rules and do not show the brackets. "
-                "Directives: " + needs
-            )
-        })
-        
-        payload.append({"role": "user", "content": model_user_content})
+  model_user_content = cleaned_prompt or "(no explicit user text this turn)"
+payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
+
+# Hard bracket rules
+if st.session_state.mode == "Chat" and directives:
+    has_prev_assistant = any(m["role"] == "assistant" for m in st.session_state.messages)
+
+    if has_prev_assistant:
+        rule = (
+            "Continue from the previous assistant reply. "
+            "Do not reset the scene and do not contradict prior details. "
+            "You must include every bracketed directive as an on screen event in the reply. "
+            "Integrate naturally into the current situation. "
+            "Do not explain the rules and do not show the brackets. "
+            "Directives: " + "; ".join(d.strip() for d in directives if d.strip())
+        )
+    else:
+        rule = (
+            "For this first turn, follow the bracketed directives exactly. "
+            "Treat them as the full intent. "
+            "Start clean with no prior context. "
+            "Do not show the brackets. "
+            "Directives: " + "; ".join(d.strip() for d in directives if d.strip())
+        )
+
+    payload.append({"role": "system", "content": rule})
+
+# now add the user turn
+payload.append({"role": "user", "content": model_user_content})
+
 
     try:
         with st.spinner("Writing..."):
