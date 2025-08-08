@@ -5,7 +5,6 @@ import os
 import json
 import re
 import re as _re
-import re
 
 BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")  # non-nested [ ... ]
 
@@ -292,16 +291,29 @@ if st.session_state.pending_input is not None:
     raw_prompt = st.session_state.pending_input
     st.session_state.pending_input = None
 
-    # If regenerating, reuse same bubble; else store a UI copy
+    # Parse markers FIRST (so we can display a cleaned bubble)
+    cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
+    
+    # If regenerating, reuse same bubble; else store a UI copy (CLEANED in the UI!)
     if st.session_state.regen_from_idx is not None:
         reuse_idx = st.session_state.regen_from_idx
         st.session_state.messages = st.session_state.messages[:reuse_idx + 1]
+        # Overwrite the reused user bubble to the cleaned version and keep raw+directives for regen
+        st.session_state.messages[reuse_idx] = {
+            "role": "user_ui",
+            "content": cleaned_prompt,
+            "raw": raw_prompt,
+            "directives": directives,
+        }
         st.session_state.regen_from_idx = None
     else:
-        st.session_state.messages.append({"role": "user_ui", "content": raw_prompt})
+        st.session_state.messages.append({
+            "role": "user_ui",
+            "content": cleaned_prompt,  # shown to user (NO BRACKETS)
+            "raw": raw_prompt,          # hidden, for regen/edit
+            "directives": directives,   # hidden, for regen/rules
+        })
 
-    # Parse markers
-    cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
 
     # Literal short-circuit
     literal = directive_exact_reply(directives)
@@ -344,12 +356,13 @@ if st.session_state.pending_input is not None:
             "Keep transitions short (one concise clause)."
         )})
 
-    # General bracket handler (broad)
+    # General bracket handler (broad) — Chat mode ONLY
     sent_cap = None
     if st.session_state.mode == "Chat" and directives:
         msgs, sent_cap = build_directive_rules(directives)
         for msg in msgs:
             payload.append({"role": "system", "content": msg})
+
 
     # Final user turn
     payload.append({"role": "user", "content": model_user_content})
@@ -415,22 +428,27 @@ for i, msg in enumerate(st.session_state.messages):
         c1, c2 = st.columns([1, 1])
         with c1:
             if st.button("↩️ Resend", key=f"resend_{i}"):
+                # Reuse the SAME bubble; pending handler will sanitize + store raw/clean
                 st.session_state.messages = st.session_state.messages[:i+1]
-                st.session_state.messages[i]["content"] = st.session_state.edit_text
+                st.session_state.regen_from_idx = i
                 st.session_state.pending_input = st.session_state.edit_text
                 st.session_state.edit_index = None
                 save_session()
                 st.rerun()
+
         with c2:
             if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
                 st.rerun()
     else:
-        st.chat_message(display_role).markdown(msg["content"])
+        to_show = msg["content"]
+        if display_role == "user":  # sanitize any legacy bracket leaks
+            to_show = parse_markers(to_show)[0]
+        st.chat_message(display_role).markdown(to_show)
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
-                st.session_state.edit_text = msg["content"]
+                st.session_state.edit_text = msg.get("raw", msg["content"])
                 st.rerun()
 
 # Regenerate using the same user bubble
@@ -439,7 +457,8 @@ if last_user_like_idx is not None and st.session_state.edit_index is None and st
         if last_user_like_idx + 1 < len(st.session_state.messages) and st.session_state.messages[last_user_like_idx + 1]["role"] == "assistant":
             st.session_state.messages = st.session_state.messages[:last_user_like_idx + 1]
         st.session_state.regen_from_idx = last_user_like_idx
-        st.session_state.pending_input = st.session_state.messages[last_user_like_idx]["content"]
+        last_msg = st.session_state.messages[last_user_like_idx]
+        st.session_state.pending_input = last_msg.get("raw", last_msg["content"])
         st.rerun()
 
 # Input box
