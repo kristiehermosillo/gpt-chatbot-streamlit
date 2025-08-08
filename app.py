@@ -170,9 +170,10 @@ with st.sidebar.expander("🗑️ Manage Chats"):
             st.session_state.active_session = new_active
             st.session_state.messages = st.session_state.sessions[new_active].copy()
         else:
-            st.session_state.sessions = {"Chat 1": [SYSTEM_PROMPT]}
+            base = _base_for(st.session_state.get("mode", "Chat"))
+            st.session_state.sessions = {"Chat 1": [base]}
             st.session_state.active_session = "Chat 1"
-            st.session_state.messages = [SYSTEM_PROMPT]
+            st.session_state.messages = [base]
 
         save_session()
         st.rerun()
@@ -283,7 +284,7 @@ if st.session_state.pending_input is not None:
             )
         })
 
- # --- Bracket directives (do them this turn, not necessarily first)
+# --- Bracket directives (do them this turn, not necessarily first)
 if st.session_state.mode == "Chat" and directives:
     # Build the plain checklist (shown last so it's salient)
     todo = "\n".join(f"- {d.strip()}" for d in directives if d.strip())
@@ -293,29 +294,24 @@ if st.session_state.mode == "Chat" and directives:
         reqs = []
         for raw in ds:
             d = raw.strip().lower()
-            # OFFER
             if "offer" in d:
-                # try to grab the object of the offer if present
                 m = re.search(r"offer to (buy|get|grab|bring)\s+(.*)", d, re.I)
                 thing = m.group(2).strip() if m else "it"
                 reqs.append(
-                    f'Include one explicit sentence of dialogue that is an OFFER, e.g.: '
+                    f'Include one explicit line of dialogue that is an OFFER, e.g. '
                     f'"Want me to grab you {thing}?" or "Can I buy you {thing}?"'
                 )
-            # ASK
             if re.search(r"\bask\b", d):
                 m = re.search(r"ask\s+(.*)", d, re.I)
                 topic = m.group(1).strip() if m else ""
                 reqs.append(
-                    'Include one explicit sentence of dialogue that is a QUESTION (an ask), '
-                    f'e.g.: "How was {topic}?"' if topic else
-                    'Include one explicit sentence of dialogue that is a QUESTION.'
+                    'Include one explicit line of dialogue that is a QUESTION'
+                    + (f', e.g. "How was {topic}?"' if topic else ".")
                 )
-            # SUGGEST
             if "suggest" in d:
                 reqs.append(
-                    'Include one explicit sentence of dialogue that is a SUGGESTION, '
-                    'e.g.: "We could do X if you’d like."'
+                    'Include one explicit line of dialogue that is a SUGGESTION, '
+                    'e.g. "We could do X if you’d like."'
                 )
         return reqs
 
@@ -323,71 +319,67 @@ if st.session_state.mode == "Chat" and directives:
     if must_say:
         payload.append({
             "role": "system",
-            "content": (
-                "Include the following explicit speech acts exactly once each (you may place them anywhere that flows):\n"
-                + "\n".join(f"- {r}" for r in must_say)
-            )
+            "content": "Include these speech acts exactly once (anywhere they flow):\n" + "\n".join(f"- {r}" for r in must_say)
         })
 
-    # Short rule: what to do and how
     payload.append({
         "role": "system",
         "content": (
             "THIS TURN: obey every bracketed directive exactly once. "
-            "Integrate them naturally anywhere in the reply (not necessarily first). "
-            "Preserve verb mood: if a directive says 'offer/ask/suggest', present it as actual spoken dialogue "
-            "(do NOT treat it as already done); if it is an imperative (go/bring/do), perform that action on screen. "
-            "Keep continuity; if moving to a new place, include a brief transition. Do not reveal brackets."
+            "Integrate them naturally (not necessarily first). "
+            "Preserve verb mood: if a directive says 'offer/ask/suggest', speak it as dialogue; "
+            "if it’s an imperative (go/bring/do), perform the action on screen. "
+            "Keep continuity; if moving places, include a brief transition. Never reveal brackets."
         )
     })
 
-    # Put the plain checklist LAST so it’s most salient
     payload.append({
         "role": "system",
         "content": "DIRECTIVES THIS TURN:\n" + todo
     })
 
-    
-        
-    # Final user turn for the model
-    payload.append({"role": "user", "content": model_user_content})
+# >>> ALWAYS send the user turn and call the API, brackets or not
+# Final user turn for the model
+payload.append({"role": "user", "content": model_user_content})
 
-    try:
-        with st.spinner("Writing..."):
-            resp = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "HTTP-Referer": referer_url,
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "messages": payload,
-                    "temperature": 0.3  # keep bracket rules tighter
-                },
-            )
-        if resp.status_code == 200:
-            reply = resp.json()["choices"][0]["message"]["content"]
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            save_session()
-            st.session_state.just_responded = True
-            st.rerun()
-        else:
-            st.error(f"API Error {resp.status_code}: {resp.text}")
-    except Exception as e:
-        st.error(f"Request failed: {e}")
-    finally:
-        st.session_state.just_responded = False
+try:
+    with st.spinner("Writing..."):
+        resp = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "HTTP-Referer": referer_url,
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": payload,
+                "temperature": 0.3,
+            },
+        )
+    if resp.status_code == 200:
+        reply = resp.json()["choices"][0]["message"]["content"]
+        st.session_state.messages.append({"role": "assistant", "content": reply})
+        save_session()
+        st.session_state.just_responded = True
+        st.rerun()
+    else:
+        st.error(f"API Error {resp.status_code}: {resp.text}")
+except Exception as e:
+    st.error(f"Request failed: {e}")
+finally:
+    st.session_state.just_responded = False
+
 
 # render
 
 def is_placeholder(msg):
     return msg["role"] == "user" and msg["content"] == "(no explicit user text this turn)"
 
-last_user_like_idx = max(
-    (i for i, m in enumerate(st.session_state.messages) if m["role"] in ("user_ui", "user")),
-    default=None,
+last_user_like_idx = next(
+    (i for i in range(len(st.session_state.messages) - 1, -1, -1)
+     if st.session_state.messages[i]["role"] in ("user_ui", "user")),
+    None
 )
 
 for i, msg in enumerate(st.session_state.messages):
