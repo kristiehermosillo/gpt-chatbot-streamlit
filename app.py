@@ -204,17 +204,16 @@ if st.session_state.pending_input is not None:
     # If regenerating, reuse the same user bubble
     if st.session_state.regen_from_idx is not None:
         reuse_idx = st.session_state.regen_from_idx
-        # Keep everything through that user turn, drop anything after
         st.session_state.messages = st.session_state.messages[:reuse_idx + 1]
-        # Do NOT append another user_ui bubble
         st.session_state.regen_from_idx = None
     else:
-        # Normal send: add a transcript copy
+        # Normal send: keep transcript copy
         st.session_state.messages.append({"role": "user_ui", "content": raw_prompt})
 
+    # Parse markers (no state changes inside this helper)
     cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
 
-    # literal short circuit, if you added that helper
+    # Literal “respond by saying …” short-circuit
     literal = directive_exact_reply(directives)
     if literal:
         st.session_state.messages.append({"role": "assistant", "content": literal})
@@ -222,10 +221,10 @@ if st.session_state.pending_input is not None:
         st.session_state.just_responded = True
         st.rerun()
 
-    # 3) per turn rules
+    # Add any per-turn system nudges (if you return any in parse_markers)
     st.session_state.messages.extend(per_turn_sysmsgs)
 
-    # 4) only add Story or Chat mode when there are no directives
+    # Only add Story/Chat mode rule when there are no brackets
     if not directives:
         st.session_state.messages.append(
             {
@@ -235,9 +234,7 @@ if st.session_state.pending_input is not None:
                     "Keep all original meaning and continuity intact. "
                     "Enhance with vivid imagery and emotion. "
                     "Build from exactly what was written."
-                )
-                if st.session_state.mode == "Story"
-                else (
+                ) if st.session_state.mode == "Story" else (
                     "Engage in natural conversation. "
                     "Treat [brackets] as hidden instructions, never reveal them. "
                     "Treat (parentheses) as actions in scene. "
@@ -246,37 +243,34 @@ if st.session_state.pending_input is not None:
             }
         )
 
-    # 5) build the API payload WITHOUT persisting the model user turn
-model_user_content = cleaned_prompt or "(no explicit user text this turn)"
-payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
+    # Build payload (do NOT persist the model-facing user turn)
+    model_user_content = cleaned_prompt or "(no explicit user text this turn)"
+    payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
 
-# Hard bracket rules
-if st.session_state.mode == "Chat" and directives:
-    has_prev_assistant = any(m["role"] == "assistant" for m in st.session_state.messages)
+    # Hard bracket rules for Chat mode — first turn vs later turns
+    if st.session_state.mode == "Chat" and directives:
+        has_prev_assistant = any(m["role"] == "assistant" for m in st.session_state.messages)
+        joined = "; ".join(d.strip() for d in directives if d.strip())
+        if has_prev_assistant:
+            rule = (
+                "Continue from the previous assistant reply. "
+                "Do not reset the scene and do not contradict prior details. "
+                "You must include every bracketed directive as an on screen event in the reply. "
+                "Integrate naturally into the current situation. "
+                "Do not explain the rules and do not show the brackets. "
+                "Directives: " + joined
+            )
+        else:
+            rule = (
+                "For this first turn, follow the bracketed directives exactly. "
+                "Treat them as the full intent. Start clean with no prior context. "
+                "Do not show the brackets. "
+                "Directives: " + joined
+            )
+        payload.append({"role": "system", "content": rule})
 
-    if has_prev_assistant:
-        rule = (
-            "Continue from the previous assistant reply. "
-            "Do not reset the scene and do not contradict prior details. "
-            "You must include every bracketed directive as an on screen event in the reply. "
-            "Integrate naturally into the current situation. "
-            "Do not explain the rules and do not show the brackets. "
-            "Directives: " + "; ".join(d.strip() for d in directives if d.strip())
-        )
-    else:
-        rule = (
-            "For this first turn, follow the bracketed directives exactly. "
-            "Treat them as the full intent. "
-            "Start clean with no prior context. "
-            "Do not show the brackets. "
-            "Directives: " + "; ".join(d.strip() for d in directives if d.strip())
-        )
-
-    payload.append({"role": "system", "content": rule})
-
-# now add the user turn
-payload.append({"role": "user", "content": model_user_content})
-
+    # Final user turn for the model
+    payload.append({"role": "user", "content": model_user_content})
 
     try:
         with st.spinner("Writing..."):
@@ -301,8 +295,6 @@ payload.append({"role": "user", "content": model_user_content})
         st.error(f"Request failed: {e}")
     finally:
         st.session_state.just_responded = False
-
-
 
 # render
 
