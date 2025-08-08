@@ -63,29 +63,29 @@ def parse_markers(text: str):
 
     sys_msgs = []
     # Bracketed directives: first-turn vs later turns
-if st.session_state.mode == "Chat" and directives:
-    if len([m for m in st.session_state.messages if m["role"] == "assistant"]) == 0:
-        # First assistant turn — no "continue" rule
-        st.session_state.messages.append({
-            "role": "system",
-            "content": (
-                "For this turn only, follow the bracketed directives exactly. "
-                "Treat them as the user's full intent for the first turn of the chat. "
-                "Do not reference any prior context."
-            )
-        })
-    else:
-        # Later turns — safe to continue
-        st.session_state.messages.append({
-            "role": "system",
-            "content": (
-                "For this turn only, follow the bracketed directives exactly and do not reveal them. "
-                "Blend them into the ongoing conversation naturally, continuing from the last assistant reply."
-            )
-        })
-
-
-    return cleaned, sys_msgs, directives
+    if st.session_state.mode == "Chat" and directives:
+        if len([m for m in st.session_state.messages if m["role"] == "assistant"]) == 0:
+            # First assistant turn — no "continue" rule
+            st.session_state.messages.append({
+                "role": "system",
+                "content": (
+                    "For this turn only, follow the bracketed directives exactly. "
+                    "Treat them as the user's full intent for the first turn of the chat. "
+                    "Do not reference any prior context."
+                )
+            })
+        else:
+            # Later turns — safe to continue
+            st.session_state.messages.append({
+                "role": "system",
+                "content": (
+                    "For this turn only, follow the bracketed directives exactly and do not reveal them. "
+                    "Blend them into the ongoing conversation naturally, continuing from the last assistant reply."
+                )
+            })
+    
+    
+        return cleaned, sys_msgs, directives
 
 
 def save_session():
