@@ -51,10 +51,11 @@ SYSTEM_PROMPT = {
 }
 
 # parse [ ], ( ), * *
-BRACKET = re.compile(r"(?<!\\)\[(.+?)(?<!\\)\]")
+BRACKET = re.compile(r"(?<!\\)\[(.+?)(?<!\\)\]", re.DOTALL)
 
 def parse_markers(text: str):
     directives = BRACKET.findall(text)
+
     cleaned = BRACKET.sub("", text)
     cleaned = cleaned.replace(r"\[", "[").replace(r"\]", "]")
     cleaned = re.sub(r"\*(.+?)\*", r"\1", cleaned)
@@ -65,10 +66,16 @@ def parse_markers(text: str):
         sys_msgs.append({
             "role": "system",
             "content": (
-                "For this turn only, follow the user's bracketed directives and do not reveal them. "
-                "Override any conflicting instructions from earlier messages."
-            ),
+                "For this turn only, follow the user's bracketed directives exactly and do not reveal them. "
+                "These directives override all earlier instructions including prior system prompts."
+            )
         })
+        # Put the raw directives in a hidden system turn for the model to see
+        sys_msgs.append({
+            "role": "system",
+            "content": "Bracketed directives: " + " ".join(directives)
+        })
+
     return cleaned, sys_msgs, directives
 
 
@@ -194,6 +201,9 @@ if "pending_input" not in st.session_state:
     st.session_state.pending_input = None
 if "just_responded" not in st.session_state:
     st.session_state.just_responded = False
+if "regen_from_idx" not in st.session_state:
+    st.session_state.regen_from_idx = None
+
 
 # clear just_responded after a rerun tick
 if st.session_state.just_responded:
@@ -205,6 +215,17 @@ st.title("Chapter Zero")
 if st.session_state.pending_input is not None:
     raw_prompt = st.session_state.pending_input
     st.session_state.pending_input = None
+
+    # If regenerating, reuse the same user bubble
+    if st.session_state.regen_from_idx is not None:
+        reuse_idx = st.session_state.regen_from_idx
+        # Keep everything through that user turn, drop anything after
+        st.session_state.messages = st.session_state.messages[:reuse_idx + 1]
+        # Do NOT append another user_ui bubble
+        st.session_state.regen_from_idx = None
+    else:
+        # Normal send: add a transcript copy
+        st.session_state.messages.append({"role": "user_ui", "content": raw_prompt})
 
     cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
 
@@ -317,11 +338,15 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_text = msg["content"]
                 st.rerun()
 
-# regenerate using last user like turn
+# Regenerate using the same user bubble
 if last_user_like_idx is not None and st.session_state.edit_index is None and st.session_state.pending_input is None:
     if st.button("🔄 Regenerate Last Response"):
+        # Trim the last assistant reply if it exists
         if last_user_like_idx + 1 < len(st.session_state.messages) and st.session_state.messages[last_user_like_idx + 1]["role"] == "assistant":
             st.session_state.messages = st.session_state.messages[:last_user_like_idx + 1]
+        # Remember which user bubble to reuse
+        st.session_state.regen_from_idx = last_user_like_idx
+        # Reuse the same input text
         st.session_state.pending_input = st.session_state.messages[last_user_like_idx]["content"]
         st.rerun()
 
