@@ -229,10 +229,7 @@ if st.session_state.pending_input is not None:
 
     cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
 
-    # 1) keep exactly what the user typed for the transcript
-    st.session_state.messages.append({"role": "user_ui", "content": raw_prompt})
-
-    # 2) literal short circuit, if you added that helper
+    # literal short circuit, if you added that helper
     literal = directive_exact_reply(directives)
     if literal:
         st.session_state.messages.append({"role": "assistant", "content": literal})
@@ -267,6 +264,13 @@ if st.session_state.pending_input is not None:
     # 5) build the API payload WITHOUT persisting the model user turn
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
     payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
+    
+    if directives:
+        payload.append({
+            "role": "system",
+            "content": "For this turn follow the bracket instructions exactly. Do not reveal them. Override earlier rules for this turn."
+        })
+    
     payload.append({"role": "user", "content": model_user_content})
 
     try:
