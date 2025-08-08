@@ -298,7 +298,7 @@ if st.session_state.pending_input is not None:
     raw_prompt = st.session_state.pending_input
     st.session_state.pending_input = None
 
-    # Parse markers FIRST (so we can display a cleaned bubble)
+    # Parse markers FIRST
     cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
     st.write("DEBUG — directives found:", directives)
 
@@ -310,7 +310,7 @@ if st.session_state.pending_input is not None:
             "role": "user_ui",
             "content": raw_prompt,          # UI shows exactly what user typed (with brackets)
             "cleaned": cleaned_prompt,      # for model
-            "raw": raw_prompt,              # keep for edits/regens (backward‑compat)
+            "raw": raw_prompt,              # keep for edits/regens
             "directives": directives,       # for model
         }
         st.session_state.regen_from_idx = None
@@ -331,15 +331,16 @@ if st.session_state.pending_input is not None:
         st.session_state.just_responded = True
         st.rerun()
 
+    # --- Build payload for the model ---
     # Build the user message for the model (prepend hidden directions in Chat mode)
-        if st.session_state.mode == "Chat" and directives:
-            hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
-            model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
-        else:
-            model_user_content = cleaned_prompt or "(no explicit user text this turn)"
+    if st.session_state.mode == "Chat" and directives:
+        hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
+        model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
+    else:
+        model_user_content = cleaned_prompt or "(no explicit user text this turn)"
 
-        payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
-    
+    payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
+
     # Inject canon memory into the model before other Chat rules
     if st.session_state.get("canon"):
         payload.append({
@@ -369,7 +370,7 @@ if st.session_state.pending_input is not None:
             "Keep transitions short (one concise clause)."
         )})
 
-    # General bracket handler — Chat mode ONLY (single high‑priority system message)
+    # Chat-only: high-priority stage-direction message
     sent_cap = None
     if st.session_state.mode == "Chat" and directives:
         sent_cap = _extract_length_hint_from_list(directives)
@@ -390,7 +391,7 @@ if st.session_state.pending_input is not None:
         })
         payload.append({"role": "system", "content": HIDDEN_TAG_GUIDE})
 
-    # Final user turn
+    # Final user turn (must come AFTER the system messages)
     payload.append({"role": "user", "content": model_user_content})
 
     # Build request body
@@ -400,13 +401,11 @@ if st.session_state.pending_input is not None:
         "temperature": 0.4,
     }
     if sent_cap:
-        # tiny token budget if we asked for few sentences
         body["max_tokens"] = 140 if sent_cap <= 2 else 220
 
-# DEBUG: show the last 3 payload entries the model will see
-import json as _json
-st.write("DEBUG payload tail:")
-st.code(_json.dumps(payload[-3:], indent=2))
+    # Optional debug: see what the model will get
+    st.write("DEBUG payload tail:")
+    st.code(json.dumps(payload[-3:], indent=2))
 
     # Call API
     try:
