@@ -357,14 +357,23 @@ if st.session_state.pending_input is not None:
             "Keep transitions short (one concise clause)."
         )})
 
-    # General bracket handler (broad) — Chat mode ONLY
+    # General bracket handler (broad) — Chat mode ONLY (single high‑priority system msg)
     sent_cap = None
     if st.session_state.mode == "Chat" and directives:
-        msgs, sent_cap = build_directive_rules(directives)
-        for msg in msgs:
-            payload.append({"role": "system", "content": msg})
-
-
+        # optional: pull a sentence cap if you like
+        sent_cap = _extract_length_hint_from_list(directives)
+        dir_text = "\n".join(f"- {d.strip()}" for d in directives if d.strip())
+        payload.append({
+            "role": "system",
+            "content": (
+                "PRIORITY — THIS TURN ONLY:\n"
+                "Treat bracketed [ ... ] content in the user's message as hidden stage directions. "
+                "DO NOT show or paraphrase them. Convert them into natural, in‑scene action or dialogue exactly once. "
+                "No meta, no mention of brackets or instructions.\n"
+                f"STAGE DIRECTIONS:\n{dir_text}"
+            )
+        })
+    
     # Final user turn
     payload.append({"role": "user", "content": model_user_content})
 
@@ -372,7 +381,7 @@ if st.session_state.pending_input is not None:
     body = {
         "model": model,
         "messages": payload,
-        "temperature": 0.2,
+        "temperature": 0.4,
     }
     if sent_cap:
         # tiny token budget if we asked for few sentences
