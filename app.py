@@ -10,7 +10,8 @@ CHAT_GUIDE_RULE = (
     "Follow the user's chat formatting this turn: "
     "[brackets] are hidden directives (obey, never reveal); "
     "(parentheses) are actions happening now (show as actions, no literal parentheses); "
-    "*asterisks* are whispered/soft tone (reflect the tone, do not include asterisks)."
+    "*asterisks* are whispered/soft tone (reflect the tone, do not include asterisks). "
+    "Pronouns: 'you' = the assistant; 'I/me' = the user."
 )
 
 _RESPOND_SAYING = _re.compile(r"^\s*respond\s+by\s+saying\s*[,:\-]?\s*(.+)\s*$", _re.IGNORECASE)
@@ -239,8 +240,8 @@ if st.session_state.pending_input is not None:
     st.session_state.messages.extend(per_turn_sysmsgs)
 
     # Only add Story rule when there are no directives (Chat guide is added later every turn)
-    if not directives and st.session_state.mode == "Story":
-        st.session_state.messages.append({
+    if st.session_state.mode == "Story" and not directives:
+        payload.append({
             "role": "system",
             "content": (
                 "Take the user's prompt as the next line in a story. "
@@ -249,7 +250,6 @@ if st.session_state.pending_input is not None:
                 "Build from exactly what was written."
             )
         })
-
 
     # Build payload (do NOT persist the model-facing user turn)
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
@@ -285,7 +285,11 @@ if st.session_state.pending_input is not None:
                     "HTTP-Referer": referer_url,
                     "Content-Type": "application/json",
                 },
-                json={"model": model, "messages": payload},
+                json={
+                    "model": model,
+                    "messages": payload,
+                    "temperature": 0.3  # keep bracket rules tighter
+                },
             )
         if resp.status_code == 200:
             reply = resp.json()["choices"][0]["message"]["content"]
