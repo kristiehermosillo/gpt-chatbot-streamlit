@@ -277,16 +277,16 @@ if st.session_state.pending_input is not None:
     if st.session_state.mode == "Chat" and directives:
         needs_bullets = "\n- " + "\n- ".join(d.strip() for d in directives if d.strip())
         rule = (
-            "For this turn only: treat the bracketed directives as mandatory. "
-            "Follow them exactly, but adapt them so they make sense in the current scene and flow naturally. "
-            "Respect verb mood: if a directive is an offer/suggestion/request (e.g., 'you offer…', 'you ask…', 'you suggest…'), express it as a proposal or question rather than performing it as a completed action; "
-            "if it is an imperative action (e.g., 'go/grab/bring'), perform the action on screen. "
+            "For this turn only: The bracketed directives are mandatory and must be addressed FIRST in your reply, before adding any extra dialogue or actions. "
+            "Preserve the verb mood exactly as written: if a directive says 'offer', 'ask', or 'suggest', present it as a proposal or question (do not act as if it already happened); "
+            "if it says 'do', 'go', 'bring', or another imperative action, perform it directly. "
+            "Adapt them so they make sense in the current scene and flow naturally. "
             "Do not contradict established locations/events, and do not teleport—include a brief, logical transition if moving or changing scenes. "
             "Do not reveal the brackets or mention rules. "
-            "Before ending, quickly self-check that each directive happened once; if anything is missing, add one concise clause to fulfill it."
+            "Before ending, self-check that each directive was fulfilled exactly once."
             f"{needs_bullets}"
         )
-
+    
         payload.append({"role": "system", "content": rule})
 
 
