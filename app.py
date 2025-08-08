@@ -338,10 +338,10 @@ if st.session_state.mode == "Chat" and directives:
         "content": "DIRECTIVES THIS TURN:\n" + todo
     })
 
-# >>> ALWAYS send the user turn and call the API, brackets or not
-# Final user turn for the model
-payload.append({"role": "user", "content": model_user_content})
-
+    # >>> ALWAYS send the user turn and call the API, brackets or not
+    # Final user turn for the model
+    payload.append({"role": "user", "content": model_user_content})
+    
     try:
         with st.spinner("Writing..."):
             resp = requests.post(
