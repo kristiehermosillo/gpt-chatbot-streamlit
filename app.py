@@ -258,27 +258,17 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
     raw_prompt = st.session_state.pending_input
     st.session_state.pending_input = None
 
-    # parse markers into per-turn system messages; clean visible user text
+    # Parse markers for per turn rules and cleaned content
     cleaned_prompt, per_turn_sysmsgs = parse_markers(raw_prompt)
 
-    # append visible user message; if only directives were sent, show a small placeholder
-    visible_content = cleaned_prompt if cleaned_prompt else "_(directive applied)_"
-    # ----- handle pending input (new or resend) -----
-if st.session_state.pending_input is not None and not st.session_state.just_responded:
-    raw_prompt = st.session_state.pending_input
-    st.session_state.pending_input = None
+    # Persist an exact copy of what the user typed so it survives reruns
+    st.session_state.messages.append({"role": "user_ui", "content": raw_prompt})
 
-    # parse markers into per-turn system messages; clean visible user text for the model
-    cleaned_prompt, per_turn_sysmsgs = parse_markers(raw_prompt)
+    # Add per turn system messages from parse_markers
+    # Note: your parse_markers already returns dicts with role and content
+    st.session_state.messages.extend(per_turn_sysmsgs)
 
-    # 1) SHOW exactly what the user typed in the transcript (do NOT store it as the model user msg)
-    st.chat_message("user").markdown(raw_prompt)
-
-    # 2) Queue per-turn rule(s) so the model follows [] / () / * * every turn
-    for sysmsg in per_turn_sysmsgs:
-        st.session_state.messages.append({"role": "system", "content": sysmsg})
-
-    # 3) Add the mode instruction for this turn
+    # Add the mode instruction for this turn
     if st.session_state.mode == "Story":
         st.session_state.messages.append(
             {
@@ -292,14 +282,14 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
                 ),
             }
         )
-    elif st.session_state.mode == "Chat":
+    else:
         st.session_state.messages.append(
             {
                 "role": "system",
                 "content": (
-                    "Engage in natural, back-and-forth conversation as the character or assistant.\n\n"
+                    "Engage in natural, back and forth conversation as the character or assistant.\n\n"
                     "Follow these formatting rules from the user:\n"
-                    "- Text inside [brackets] is instruction or intent. React to it, but don’t say it aloud.\n"
+                    "- Text inside [brackets] is instruction or intent. React to it, but do not say it aloud.\n"
                     "- Text inside (parentheses) describes physical actions. Treat them as happening in the scene.\n"
                     "- Text inside asterisks, like *this*, is whispered. Keep that tone.\n\n"
                     "Never skip or ignore the user’s message. Always build with continuity."
@@ -307,42 +297,37 @@ if st.session_state.pending_input is not None and not st.session_state.just_resp
             }
         )
 
-    # 4) Finally, send the cleaned user content to the model (so it won't echo directives)
+    # Add the actual model facing user message
     model_user_content = cleaned_prompt.strip() or "(no explicit user text this turn)"
     st.session_state.messages.append({"role": "user", "content": model_user_content})
 
+    # Build payload while excluding transcript only entries
+    to_send = [m for m in st.session_state.messages if m["role"] != "user_ui"]
 
-    # insert per-turn system messages (from markers) just before the user's prompt
-    for sysm in reversed(per_turn_sysmsgs):
-        st.session_state.messages.insert(-1, sysm)
-
-    # call API with reinforced system prompt on every turn
-    to_send = [SYSTEM_PROMPT] + st.session_state.messages[1:]
-
-    with st.spinner("Writing..."):
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "HTTP-Referer": referer_url,
-                "Content-Type": "application/json"
-            },
-            json={"model": model, "messages": to_send}
-        )
-
-    if response.status_code == 200:
-        reply = response.json()["choices"][0]["message"]["content"]
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        save_session()
-        st.session_state.just_responded = True
-        st.rerun()
-    else:
-        st.error(f"API Error {response.status_code}: {response.text}")
+    try:
+        with st.spinner("Writing..."):
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "HTTP-Referer": referer_url,
+                    "Content-Type": "application/json"
+                },
+                json={"model": model, "messages": to_send}
+            )
+        if response.status_code == 200:
+            reply = response.json()["choices"][0]["message"]["content"]
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            save_session()
+            st.session_state.just_responded = True
+            st.rerun()
+        else:
+            st.error(f"API Error {response.status_code}: {response.text}")
+            st.session_state.just_responded = False
+    except Exception as e:
+        st.error(f"Request failed: {e}")
         st.session_state.just_responded = False
 
-# clear just_responded after rerun
-if st.session_state.just_responded:
-    st.session_state.just_responded = False
 
 # ----- render chat -----
 last_user_idx = max((i for i, m in enumerate(st.session_state.messages) if m["role"] == "user"), default=None)
@@ -351,6 +336,8 @@ for i, msg in enumerate(st.session_state.messages):
     role = msg["role"]
     if role == "system":
         continue
+
+    display_role = "user" if role == "user_ui" else role
 
     if role == "user" and st.session_state.edit_index == i:
         st.session_state.edit_text = st.text_area("✏️ Edit message", st.session_state.edit_text, key=f"edit_{i}")
@@ -368,9 +355,8 @@ for i, msg in enumerate(st.session_state.messages):
             if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
                 st.rerun()
-
     else:
-        st.chat_message(role).markdown(msg["content"])
+        st.chat_message(display_role).markdown(msg["content"])
         if role == "user" and i == last_user_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
