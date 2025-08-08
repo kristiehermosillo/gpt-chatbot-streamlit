@@ -293,7 +293,8 @@ if st.session_state.pending_input is not None:
 
     # Parse markers FIRST (so we can display a cleaned bubble)
     cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
-    
+    st.write("DEBUG — directives found:", directives)
+
     # If regenerating, reuse same bubble; else store a UI copy (CLEANED in the UI!)
     if st.session_state.regen_from_idx is not None:
         reuse_idx = st.session_state.regen_from_idx
