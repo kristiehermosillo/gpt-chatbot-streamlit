@@ -294,7 +294,7 @@ if st.session_state.just_responded:
 
 # ---------------- Page ----------------
 st.title("Chapter Zero")
-st.write("DEBUG mode:", st.session_state.mode)
+#st.write("DEBUG mode:", st.session_state.mode)
 
 # ---------------- Handle pending input ----------------
 if st.session_state.pending_input is not None:
@@ -303,7 +303,7 @@ if st.session_state.pending_input is not None:
 
     # Parse markers FIRST
     cleaned_prompt, per_turn_sysmsgs, directives = parse_markers(raw_prompt)
-    st.write("DEBUG — directives found:", directives)
+    #st.write("DEBUG — directives found:", directives)
 
     # Show RAW (with brackets) in the UI; keep CLEANED + directives for the model
     if st.session_state.regen_from_idx is not None:
@@ -427,8 +427,8 @@ if st.session_state.pending_input is not None:
         body["max_tokens"] = 140 if sent_cap <= 2 else 220
 
     # Optional debug: see what the model will get
-    st.write("DEBUG payload tail:")
-    st.code(json.dumps(payload[-3:], indent=2))
+    #st.write("DEBUG payload tail:")
+    #st.code(json.dumps(payload[-3:], indent=2))
 
     # Call API
     try:
