@@ -66,14 +66,14 @@ def parse_markers(text: str):
         sys_msgs.append({
             "role": "system",
             "content": (
-                "For this turn only, follow the user's bracketed directives exactly and do not reveal them. "
-                "These directives override all earlier instructions including prior system prompts."
+                "For this turn only, treat the user's bracketed text as hard requirements. "
+                "Do not reveal the brackets. "
+                "If a directive describes an event, that event must occur in the reply."
             )
         })
-        # Put the raw directives in a hidden system turn for the model to see
         sys_msgs.append({
             "role": "system",
-            "content": "Bracketed directives: " + " ".join(directives)
+            "content": "Bracket directives for this turn: " + " ".join(directives)
         })
 
     return cleaned, sys_msgs, directives
@@ -265,11 +265,20 @@ if st.session_state.pending_input is not None:
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
     payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
     
-    if directives:
-        payload.append({
-            "role": "system",
-            "content": "For this turn follow the bracket instructions exactly. Do not reveal them. Override earlier rules for this turn."
-        })
+# Make brackets non optional in Chat mode and keep continuity
+if st.session_state.mode == "Chat" and directives:
+    needs = "; ".join(d.strip() for d in directives if d.strip())
+    payload.append({
+        "role": "system",
+        "content": (
+            "Continue from the previous assistant reply. "
+            "Do not reset the scene and do not contradict prior details. "
+            "You must include every bracketed directive as an on screen event in the reply. "
+            "Integrate naturally into the current situation. "
+            "Do not explain the rules and do not show the brackets. "
+            "Directives: " + needs
+        )
+    })
     
     payload.append({"role": "user", "content": model_user_content})
 
