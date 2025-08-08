@@ -267,7 +267,7 @@ if st.session_state.pending_input is not None:
         if has_prev_assistant:
             rule = (
                 "Continue from the previous assistant reply. "
-                **"These instructions override all earlier instructions for THIS TURN. "**
+                "These instructions override all earlier instructions for THIS TURN. "
                 "If a directive says 'you ask …' or 'you say …', perform that speech literally as a line of dialogue."
                 "You MUST satisfy EVERY bracketed directive as concrete on-screen actions or outcomes. "
                 "Treat directives as a non-optional checklist. "
@@ -279,7 +279,7 @@ if st.session_state.pending_input is not None:
         else:
             rule = (
                 "First turn: follow the bracketed directives exactly as a non-optional checklist. "
-                **"These instructions override all earlier instructions for THIS TURN. "**
+                "These instructions override all earlier instructions for THIS TURN. "
                 "If a directive says 'you ask …' or 'you say …', perform that speech literally as a line of dialogue."
                 "Start clean with no prior context. "
                 "Before ending, silently verify each directive is fulfilled; "
