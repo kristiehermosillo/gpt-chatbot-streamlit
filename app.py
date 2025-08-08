@@ -249,25 +249,31 @@ if st.session_state.pending_input is not None:
 
     # Hard bracket rules for Chat mode — first turn vs later turns
     if st.session_state.mode == "Chat" and directives:
-        has_prev_assistant = any(m["role"] == "assistant" for m in st.session_state.messages)
-        joined = "; ".join(d.strip() for d in directives if d.strip())
-        if has_prev_assistant:
-            rule = (
-                "Continue from the previous assistant reply. "
-                "Do not reset the scene and do not contradict prior details. "
-                "You must include every bracketed directive as an on screen event in the reply. "
-                "Integrate naturally into the current situation. "
-                "Do not explain the rules and do not show the brackets. "
-                "Directives: " + joined
-            )
-        else:
-            rule = (
-                "For this first turn, follow the bracketed directives exactly. "
-                "Treat them as the full intent. Start clean with no prior context. "
-                "Do not show the brackets. "
-                "Directives: " + joined
-            )
-        payload.append({"role": "system", "content": rule})
+    has_prev_assistant = any(m["role"] == "assistant" for m in st.session_state.messages)
+    needs = "; ".join(d.strip() for d in directives if d.strip())
+
+    if has_prev_assistant:
+        rule = (
+            "Continue from the previous assistant reply. "
+            "Do not reset the scene and do not contradict prior details. "
+            "You MUST satisfy EVERY bracketed directive as concrete on-screen actions or outcomes. "
+            "Treat directives as a non-optional checklist. "
+            "Before ending, silently verify each directive is fulfilled; "
+            "if any are missing, add one brief sentence to fulfill them. "
+            "Do not explain the rules and do not show the brackets. "
+            "Directives: " + needs
+        )
+    else:
+        rule = (
+            "First turn: follow the bracketed directives exactly as a non-optional checklist. "
+            "Start clean with no prior context. "
+            "Before ending, silently verify each directive is fulfilled; "
+            "if any are missing, add one brief sentence to fulfill them. "
+            "Do not show the brackets. "
+            "Directives: " + needs
+        )
+
+    payload.append({"role": "system", "content": rule})
 
     # Final user turn for the model
     payload.append({"role": "user", "content": model_user_content})
