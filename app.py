@@ -273,22 +273,26 @@ if st.session_state.pending_input is not None:
         })
 
 
-    # Hard bracket rules for Chat mode — ALWAYS enforce this turn (general + concise)
+    # Hard bracket rules for Chat mode — ALWAYS enforce this turn
     if st.session_state.mode == "Chat" and directives:
         needs_bullets = "\n- " + "\n- ".join(d.strip() for d in directives if d.strip())
+    
         rule = (
-            "For this turn only: The bracketed directives are mandatory and must be addressed FIRST in your reply, before adding any extra dialogue or actions. "
-            "Preserve the verb mood exactly as written: if a directive says 'offer', 'ask', or 'suggest', present it as a proposal or question (do not act as if it already happened); "
-            "if it says 'do', 'go', 'bring', or another imperative action, perform it directly. "
-            "Adapt them so they make sense in the current scene and flow naturally. "
-            "Do not contradict established locations/events, and do not teleport—include a brief, logical transition if moving or changing scenes. "
+            "For THIS TURN ONLY: The bracketed directives are mandatory and must be fulfilled exactly once in this reply. "
+            "Integrate them naturally at an appropriate moment in the flow; you may add other lines before or after, "
+            "but the directives must occur by the end of the reply. "
+            "Preserve verb mood exactly as written: if a directive says 'offer', 'ask', or 'suggest', express it as a proposal or question "
+            "(do NOT treat it as already completed); if it is an imperative like 'go/bring/do', perform that action on screen. "
+            "Keep continuity: do not contradict prior details; if moving to a new place, include a brief logical transition (no teleporting). "
             "Do not reveal the brackets or mention rules. "
-            "Before ending, self-check that each directive was fulfilled exactly once."
+            "Before ending, self-check that each directive was satisfied once."
             f"{needs_bullets}"
         )
     
         payload.append({"role": "system", "content": rule})
-
+    
+        
+    
 
     # Final user turn for the model
     payload.append({"role": "user", "content": model_user_content})
