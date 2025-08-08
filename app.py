@@ -247,7 +247,7 @@ if st.session_state.pending_input is not None:
         )
 
     # 5) build the API payload WITHOUT persisting the model user turn
-  model_user_content = cleaned_prompt or "(no explicit user text this turn)"
+model_user_content = cleaned_prompt or "(no explicit user text this turn)"
 payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
 
 # Hard bracket rules
