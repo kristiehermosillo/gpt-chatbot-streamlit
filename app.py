@@ -112,6 +112,102 @@ st.markdown(
 
 SAVE_PATH = "sessions.json"
 
+# ---- THEME SYSTEM ----
+THEMES = {
+    "Default (Streamlit)": None,  # no CSS override, use Streamlit's theme
+    # Palette A — Eerie / light greys
+    "Eerie Light": {
+        "bg": "#FAFAFF",         # app background
+        "surface": "#EEF0F2",    # cards / chat bubbles background
+        "text": "#1C1C1C",       # primary text
+        "muted": "#DADDD8",      # secondary text / borders
+        "accent": "#ECEBE4",     # subtle accents
+    },
+    # Palette B — Space Cadet / Columbia Blue
+    "Cadet Blue": {
+        "bg": "#FEFCFD",
+        "surface": "#BFCDE0",
+        "text": "#000505",
+        "muted": "#5D5D81",
+        "accent": "#3B3355",
+    },
+    # Palette C — Teal / Saffron / Burnt Sienna
+    "Teal Saffron": {
+        "bg": "#FEFCFD",
+        "surface": "#E9C46A",
+        "text": "#000505",
+        "muted": "#2A9D8F",
+        "accent": "#E76F51",
+    },
+    # Palette D — Licorice / Chamoisee / Ecru
+    "Licorice Earth": {
+        "bg": "#000000",
+        "surface": "#2A1A1F",
+        "text": "#FAFAFF",
+        "muted": "#AD8350",
+        "accent": "#AFA060",
+    },
+}
+
+def apply_theme(theme_name: str):
+    """Inject CSS variables + component styling for the chosen theme."""
+    if theme_name not in THEMES or THEMES[theme_name] is None:
+        # Default: remove overrides (or keep minimal tweaks)
+        st.session_state["_theme_css"] = ""
+        return
+
+    p = THEMES[theme_name]
+    css = f"""
+    <style>
+    :root {{
+      --bg: {p["bg"]};
+      --surface: {p["surface"]};
+      --text: {p["text"]};
+      --muted: {p["muted"]};
+      --accent: {p["accent"]};
+    }}
+    /* App background + text */
+    .stApp, .stApp header, .stApp footer {{
+      background: var(--bg) !important;
+      color: var(--text) !important;
+    }}
+    /* Sidebar */
+    section[data-testid="stSidebar"] > div {{
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-right: 1px solid var(--muted) !important;
+    }}
+    /* Chat input */
+    .stChatInput textarea {{
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--muted) !important;
+    }}
+    /* Chat bubbles */
+    .stChatMessage[data-testid="stChatMessage"] > div {{
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--muted) !important;
+      border-radius: 14px !important;
+    }}
+    /* Buttons */
+    .stButton button {{
+      background: var(--accent) !important;
+      color: var(--bg) !important;
+      border: none !important;
+      border-radius: 8px !important;
+    }}
+    .stButton button:hover {{
+      filter: brightness(0.95);
+    }}
+    /* Code + expander borders */
+    .stCodeBlock, .stExpander {{
+      border-color: var(--muted) !important;
+    }}
+    </style>
+    """
+    st.session_state["_theme_css"] = css
+
 # ---------------- Base prompts (Story vs Chat) ----------------
 STORY_BASE = {
     "role": "system",
