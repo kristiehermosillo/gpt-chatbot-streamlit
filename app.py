@@ -154,6 +154,13 @@ def directive_exact_reply(directives):
         if m:
             return m.group(1).strip()
     return None
+    
+def _last_assistant_text(messages):
+    """Get most recent assistant message text."""
+    for m in reversed(messages):
+        if m.get("role") == "assistant" and m.get("content"):
+            return m["content"].strip()
+    return ""
 
 # ---------------- Bracket parsing ----------------
 BRACKET = re.compile(r"(?<!\\)\[(.+?)(?<!\\)\]", re.DOTALL)
@@ -328,6 +335,34 @@ with st.sidebar.expander("📘 Chat Input Guide"):
 (parentheses) describe actions  
 *asterisks* mark whispers
 """)
+with st.sidebar.expander("🧬 Persona & Themes (Chat mode)"):
+    if "persona" not in st.session_state:
+        st.session_state.persona = {
+            "who": "",
+            "role": "",
+            "themes": "",
+            "boundaries": ""
+        }
+
+    st.session_state.persona["who"] = st.text_area("Persona (who you are)", value=st.session_state.persona["who"], height=80, placeholder="e.g., A gruff but kind bartender with a dry sense of humor.")
+    st.session_state.persona["role"] = st.text_area("Role / Voice", value=st.session_state.persona["role"], height=70, placeholder="e.g., Speak in vivid, present-tense cinematic prose; snappy, sensual, unfiltered.")
+    st.session_state.persona["themes"] = st.text_area("Themes / Setting", value=st.session_state.persona["themes"], height=70, placeholder="e.g., Neon city at night; rainy rooftops; smoky jazz; slow-burn tension.")
+    st.session_state.persona["boundaries"] = st.text_area("Hard boundaries", value=st.session_state.persona["boundaries"], height=60, placeholder="e.g., No breaking the fourth wall. No therapy/medical claims.")
+
+with st.sidebar.expander("🧷 Canon (memory)"):
+    if "canon" not in st.session_state:
+        st.session_state.canon = []
+    canon_text = "\n".join(st.session_state.canon)
+    new_canon = st.text_area("Pinned facts / continuity notes", value=canon_text, height=150,
+                             help="Short bullets. Keep it tight; this is injected each turn.")
+    if st.button("Save Canon"):
+        st.session_state.canon = [line.strip() for line in new_canon.splitlines() if line.strip()]
+        save_session()
+        st.experimental_rerun()
+    if st.button("Clear Canon"):
+        st.session_state.canon = []
+        save_session()
+        st.experimental_rerun()
 
 # ---------------- Ensure base state ----------------
 api_key = st.secrets["OPENROUTER_API_KEY"]
@@ -404,11 +439,30 @@ if st.session_state.pending_input is not None:
 
     payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
 
+    
     # Inject canon memory into the model before other Chat rules
     if st.session_state.get("canon"):
         payload.append({
             "role": "system",
             "content": "CONTINUITY RECAP (for reference only, do not repeat to user):\n" + "\n".join(st.session_state.canon)
+        })
+# Persona / Themes injection (Chat only)
+if st.session_state.mode == "Chat":
+    p = st.session_state.get("persona", {})
+    persona_bits = []
+    if p.get("who"):
+        persona_bits.append(f"Persona: {p['who']}")
+    if p.get("role"):
+        persona_bits.append(f"Voice/Role: {p['role']}")
+    if p.get("themes"):
+        persona_bits.append(f"Themes/Setting to keep present: {p['themes']}")
+    if p.get("boundaries"):
+        persona_bits.append(f"Hard boundaries: {p['boundaries']}")
+
+    if persona_bits:
+        payload.append({
+            "role": "system",
+            "content": "CHAT MODE PERSISTENT PERSONA (do not state this aloud; just follow):\n" + "\n".join(persona_bits)
         })
 
     # Mode rules
@@ -472,7 +526,22 @@ if st.session_state.pending_input is not None:
     
         payload.append({"role": "system", "content": "\n".join(priority_lines)})
         payload.append({"role": "system", "content": HIDDEN_TAG_GUIDE})
-    
+        # 4 — Continuity anchor (keep same scene unless user changes it)
+        if st.session_state.mode == "Chat":
+            last_beat = _last_assistant_text(st.session_state.messages)
+            if last_beat:
+                anchor = last_beat[-400:]  # last 400 characters of previous reply
+                payload.append({
+                    "role": "system",
+                    "content": (
+                        "CONTINUITY ANCHOR (Chat mode):\n"
+                        "Stay in the same immediate scene (location, characters, objects, timeline) as the recent reply, "
+                        "unless the USER moves it. If you must change location/time, insert a brief transition FIRST "
+                        "(one short clause), then continue. No sudden teleports.\n\n"
+                        f"Recent scene excerpt:\n{anchor}"
+                    )
+                })
+
 
     # Final user turn (must come AFTER the system messages)
     payload.append({"role": "user", "content": model_user_content})
@@ -599,6 +668,17 @@ for i, msg in enumerate(st.session_state.messages):
                 st.rerun()
     else:
         st.chat_message(display_role).markdown(msg["content"])
+        # 3B — Pin assistant reply to canon
+        if role == "assistant":
+            if st.button("📌 Pin this to canon", key=f"pin_{i}"):
+                snippet = msg["content"].strip()
+                # Grab last 1–2 sentences or trim to 280 chars
+                lines = re.split(r'(?<=[.!?])\s+', snippet)
+                short = " ".join(lines[-2:]) if len(lines) > 1 else snippet[:280]
+                st.session_state.canon.append(short)
+                save_session()
+                st.experimental_rerun()
+
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
