@@ -481,7 +481,7 @@ if st.session_state.pending_input is not None:
     body = {
         "model": model,
         "messages": payload,
-        "temperature": 0.4,
+        "temperature": 0.3,
     }
     if sent_cap:
         body["max_tokens"] = 140 if sent_cap <= 2 else 220
