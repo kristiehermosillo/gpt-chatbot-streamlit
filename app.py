@@ -335,19 +335,41 @@ with st.sidebar.expander("📘 Chat Input Guide"):
 (parentheses) describe actions  
 *asterisks* mark whispers
 """)
-with st.sidebar.expander("🧬 Persona & Themes (Chat mode)"):
-    if "persona" not in st.session_state:
-        st.session_state.persona = {
-            "who": "",
-            "role": "",
-            "themes": "",
-            "boundaries": ""
-        }
+# Show persona editor only in Chat mode
+if st.session_state.get("mode") == "Chat":  # or: if mode == "Chat":
+    with st.sidebar.expander("🧬 Persona & Themes (Chat mode)"):
+        if "persona" not in st.session_state:
+            st.session_state.persona = {
+                "who": "",
+                "role": "",
+                "themes": "",
+                "boundaries": ""
+            }
 
-    st.session_state.persona["who"] = st.text_area("Persona (who you are)", value=st.session_state.persona["who"], height=80, placeholder="e.g., A gruff but kind bartender with a dry sense of humor.")
-    st.session_state.persona["role"] = st.text_area("Role / Voice", value=st.session_state.persona["role"], height=70, placeholder="e.g., Speak in vivid, present-tense cinematic prose; snappy, sensual, unfiltered.")
-    st.session_state.persona["themes"] = st.text_area("Themes / Setting", value=st.session_state.persona["themes"], height=70, placeholder="e.g., Neon city at night; rainy rooftops; smoky jazz; slow-burn tension.")
-    st.session_state.persona["boundaries"] = st.text_area("Hard boundaries", value=st.session_state.persona["boundaries"], height=60, placeholder="e.g., No breaking the fourth wall. No therapy/medical claims.")
+        st.session_state.persona["who"] = st.text_area(
+            "Persona (who you are)",
+            value=st.session_state.persona["who"],
+            height=80,
+            placeholder="e.g., A gruff but kind bartender with a dry sense of humor."
+        )
+        st.session_state.persona["role"] = st.text_area(
+            "Role / Voice",
+            value=st.session_state.persona["role"],
+            height=70,
+            placeholder="e.g., Speak in vivid, present-tense cinematic prose; snappy, sensual, unfiltered."
+        )
+        st.session_state.persona["themes"] = st.text_area(
+            "Themes / Setting",
+            value=st.session_state.persona["themes"],
+            height=70,
+            placeholder="e.g., Neon city at night; rainy rooftops; smoky jazz; slow-burn tension."
+        )
+        st.session_state.persona["boundaries"] = st.text_area(
+            "Hard boundaries",
+            value=st.session_state.persona["boundaries"],
+            height=60,
+            placeholder="e.g., No breaking the fourth wall. No therapy/medical claims."
+        )
 
 with st.sidebar.expander("🧷 Canon (memory)"):
     if "canon" not in st.session_state:
