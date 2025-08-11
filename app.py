@@ -97,6 +97,18 @@ components.html(
 )
 
 st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
+st.markdown(
+    """
+    <style>
+    .stChatInput textarea {
+        min-height: 2.5em !important; /* makes it shorter */
+        max-height: 4em !important;   /* prevents it from getting too tall */
+        line-height: 1.4em !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 SAVE_PATH = "sessions.json"
 
