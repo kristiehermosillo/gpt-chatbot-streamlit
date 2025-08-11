@@ -110,13 +110,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# >>> THEME INIT — paste exactly here <<<
-if "theme" not in st.session_state:
-    st.session_state.theme = "Default (Streamlit)"
-apply_theme(st.session_state.theme)
-if st.session_state.get("_theme_css"):
-    st.markdown(st.session_state["_theme_css"], unsafe_allow_html=True)
-# <<< END THEME INIT >>>
 
 SAVE_PATH = "sessions.json"
 
@@ -215,6 +208,15 @@ def apply_theme(theme_name: str):
     </style>
     """
     st.session_state["_theme_css"] = css
+    
+# >>> THEME INIT — paste exactly here <<<
+if "theme" not in st.session_state:
+    st.session_state.theme = "Default (Streamlit)"
+apply_theme(st.session_state.theme)
+if st.session_state.get("_theme_css"):
+    st.markdown(st.session_state["_theme_css"], unsafe_allow_html=True)
+# <<< END THEME INIT >>>
+
 # ---------------- Base prompts (Story vs Chat) ----------------
 STORY_BASE = {
     "role": "system",
