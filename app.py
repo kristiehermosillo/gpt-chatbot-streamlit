@@ -159,55 +159,56 @@ def apply_theme(theme_name: str):
 
     p = THEMES[theme_name]
     css = f"""
-    <style>
-    :root {{
-      --bg: {p["bg"]};
-      --surface: {p["surface"]};
-      --text: {p["text"]};
-      --muted: {p["muted"]};
-      --accent: {p["accent"]};
-    }}
-    /* App background + text */
-    .stApp, .stApp header, .stApp footer {{
-      background: var(--bg) !important;
-      color: var(--text) !important;
-    }}
-    /* Sidebar */
-    section[data-testid="stSidebar"] > div {{
-      background: var(--surface) !important;
-      color: var(--text) !important;
-      border-right: 1px solid var(--muted) !important;
-    }}
-    /* Chat input */
-    .stChatInput textarea {{
-      background: var(--surface) !important;
-      color: var(--text) !important;
-      border: 1px solid var(--muted) !important;
-    }}
-    /* Chat bubbles */
-    div[data-testid="stChatMessage"] > div {
-      background: var(--surface) !important;
-      color: var(--text) !important;
-      border: 1px solid var(--muted) !important;
-      border-radius: 14px !important;
-    }
-    /* Buttons */
-    .stButton button {{
-      background: var(--accent) !important;
-      color: var(--bg) !important;
-      border: none !important;
-      border-radius: 8px !important;
-    }}
-    .stButton button:hover {{
-      filter: brightness(0.95);
-    }}
-    /* Code + expander borders */
-    .stCodeBlock, .stExpander {{
-      border-color: var(--muted) !important;
-    }}
-    </style>
-    """
+<style>
+:root {{
+  --bg: {p["bg"]};
+  --surface: {p["surface"]};
+  --text: {p["text"]};
+  --muted: {p["muted"]};
+  --accent: {p["accent"]};
+}}
+/* App background + text */
+.stApp, .stApp header, .stApp footer {{
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}}
+/* Sidebar */
+section[data-testid="stSidebar"] > div {{
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-right: 1px solid var(--muted) !important;
+}}
+/* Chat input */
+.stChatInput textarea {{
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--muted) !important;
+}}
+/* Chat bubbles */
+div[data-testid="stChatMessage"] > div {{
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--muted) !important;
+  border-radius: 14px !important;
+}}
+/* Buttons */
+.stButton button {{
+  background: var(--accent) !important;
+  color: var(--bg) !important;
+  border: none !important;
+  border-radius: 8px !important;
+}}
+.stButton button:hover {{
+  filter: brightness(0.95);
+}}
+/* Code + expander borders */
+.stCodeBlock, .stExpander {{
+  border-color: var(--muted) !important;
+}}
+</style>
+"""
     st.session_state["_theme_css"] = css
+
     
 # >>> THEME INIT — paste exactly here <<<
 if "theme" not in st.session_state:
