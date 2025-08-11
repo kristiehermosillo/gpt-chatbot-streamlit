@@ -207,6 +207,9 @@ def apply_theme(theme_name: str):
     </style>
     """
     st.session_state["_theme_css"] = css
+    
+if "_theme_css" in st.session_state and st.session_state["_theme_css"]:
+    st.markdown(st.session_state["_theme_css"], unsafe_allow_html=True)
 
 # ---------------- Base prompts (Story vs Chat) ----------------
 STORY_BASE = {
@@ -381,6 +384,32 @@ if st.sidebar.button("+ New Chat"):
     st.session_state.edit_index = None
     save_session()
     st.rerun()
+with st.sidebar.expander("🎨 Theme"):
+    if "theme" not in st.session_state:
+        st.session_state.theme = "Default (Streamlit)"
+    theme_choice = st.selectbox(
+        "Choose a color palette",
+        list(THEMES.keys()),
+        index=list(THEMES.keys()).index(st.session_state.theme),
+        help="Applies only to this app; overrides Streamlit theme while active."
+    )
+    if theme_choice != st.session_state.theme:
+        st.session_state.theme = theme_choice
+        apply_theme(theme_choice)
+        if st.session_state.get("_theme_css"):
+            st.markdown(st.session_state["_theme_css"], unsafe_allow_html=True)
+        st.experimental_rerun()
+
+    # Tiny swatch preview
+    if theme_choice in THEMES and THEMES[theme_choice]:
+        p = THEMES[theme_choice]
+        c1,c2,c3,c4,c5 = st.columns(5)
+        for col, key in zip((c1,c2,c3,c4,c5), ("bg","surface","text","muted","accent")):
+            col.markdown(
+                f'<div style="height:36px;border-radius:6px;border:1px solid #0001;background:{p[key]}"></div>'
+                f'<div style="font-size:11px;margin-top:4px">{key}: {p[key]}</div>',
+                unsafe_allow_html=True
+            )
 
 with st.sidebar.expander("✏️ Rename Current Chat"):
     new_name = st.text_input("Rename to:", value=st.session_state.active_session, key="rename_input")
