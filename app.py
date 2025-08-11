@@ -5,6 +5,19 @@ import os
 import json
 import re
 import re as _re
+
+def pin_to_canon_safe(text: str):
+    """Add a short snippet to canon without crashing if text is empty."""
+    if "canon" not in st.session_state or not isinstance(st.session_state.canon, list):
+        st.session_state.canon = []
+    snippet = (text or "").strip()
+    if not snippet:
+        return
+    # take the last 1–2 sentences, or trim to 280 chars if it's short
+    parts = re.split(r'(?<=[.!?])\s+', snippet)
+    short = " ".join(parts[-2:]) if len(parts) > 1 else snippet[:280]
+    st.session_state.canon.append(short)
+
 # --- Bracket enforcement helpers ---
 _STOPWORDS = {"the","a","an","and","or","but","if","then","so","to","for","of","in","on","at","with","by","from","as","that","this","these","those","be","is","am","are","was","were","it","you","me","my","your","we","they","he","she","him","her","them","i"}
 
@@ -109,6 +122,9 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+# Ensure 'canon' exists early so any UI can use it safely
+if "canon" not in st.session_state or not isinstance(st.session_state.canon, list):
+    st.session_state.canon = []
 
 
 SAVE_PATH = "sessions.json"
@@ -475,19 +491,27 @@ if st.session_state.get("mode") == "Chat":  # or: if mode == "Chat":
         )
 if st.session_state.get("mode") == "Chat":
     with st.sidebar.expander("🧷 Canon (memory)"):
-        if "canon" not in st.session_state:
+        if "canon" not in st.session_state or not isinstance(st.session_state.canon, list):
             st.session_state.canon = []
         canon_text = "\n".join(st.session_state.canon)
-        new_canon = st.text_area("Pinned facts / continuity notes", value=canon_text, height=150,
-                                 help="Short bullets. Keep it tight; this is injected each turn.")
-        if st.button("Save Canon"):
-            st.session_state.canon = [line.strip() for line in new_canon.splitlines() if line.strip()]
-            save_session()
-            st.experimental_rerun()
-        if st.button("Clear Canon"):
-            st.session_state.canon = []
-            save_session()
-            st.experimental_rerun()
+        new_canon = st.text_area(
+            "Pinned facts / continuity notes",
+            value=canon_text,
+            height=150,
+            help="Short bullets. Keep it tight; this is injected each turn."
+        )
+        colA, colB = st.columns(2)
+        with colA:
+            if st.button("Save Canon"):
+                lines = [line.strip() for line in (new_canon or "").splitlines() if line.strip()]
+                st.session_state.canon = lines
+                save_session()
+                st.experimental_rerun()
+        with colB:
+            if st.button("Clear Canon"):
+                st.session_state.canon = []
+                save_session()
+                st.experimental_rerun()
 
 # ---------------- Ensure base state ----------------
 api_key = st.secrets["OPENROUTER_API_KEY"]
@@ -792,11 +816,7 @@ for i, msg in enumerate(st.session_state.messages):
         # 3B — Pin assistant reply to canon
         if role == "assistant":
             if st.button("📌 Pin this to canon", key=f"pin_{i}"):
-                snippet = msg["content"].strip()
-                # Grab last 1–2 sentences or trim to 280 chars
-                lines = re.split(r'(?<=[.!?])\s+', snippet)
-                short = " ".join(lines[-2:]) if len(lines) > 1 else snippet[:280]
-                st.session_state.canon.append(short)
+                pin_to_canon_safe(msg.get("content", ""))
                 save_session()
                 st.experimental_rerun()
 
