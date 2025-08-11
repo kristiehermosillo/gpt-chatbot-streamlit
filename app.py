@@ -110,6 +110,14 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# >>> THEME INIT — paste exactly here <<<
+if "theme" not in st.session_state:
+    st.session_state.theme = "Default (Streamlit)"
+apply_theme(st.session_state.theme)
+if st.session_state.get("_theme_css"):
+    st.markdown(st.session_state["_theme_css"], unsafe_allow_html=True)
+# <<< END THEME INIT >>>
+
 SAVE_PATH = "sessions.json"
 
 # ---- THEME SYSTEM ----
@@ -184,12 +192,12 @@ def apply_theme(theme_name: str):
       border: 1px solid var(--muted) !important;
     }}
     /* Chat bubbles */
-    .stChatMessage[data-testid="stChatMessage"] > div {{
+    div[data-testid="stChatMessage"] > div {
       background: var(--surface) !important;
       color: var(--text) !important;
       border: 1px solid var(--muted) !important;
       border-radius: 14px !important;
-    }}
+    }
     /* Buttons */
     .stButton button {{
       background: var(--accent) !important;
@@ -207,10 +215,6 @@ def apply_theme(theme_name: str):
     </style>
     """
     st.session_state["_theme_css"] = css
-    
-if "_theme_css" in st.session_state and st.session_state["_theme_css"]:
-    st.markdown(st.session_state["_theme_css"], unsafe_allow_html=True)
-
 # ---------------- Base prompts (Story vs Chat) ----------------
 STORY_BASE = {
     "role": "system",
