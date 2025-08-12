@@ -319,22 +319,55 @@ def build_directive_rules(directives):
 
 # ---------------- Persistence ----------------
 def save_session():
-    st.session_state.sessions[st.session_state.active_session] = st.session_state.messages.copy()
+    st.session_state.sessions[st.session_state.active_session]["messages"] = st.session_state.messages.copy()
+    # also persist persona + canon for the active chat
+    st.session_state.sessions[st.session_state.active_session]["persona"] = dict(st.session_state.get("persona", {}))
+    st.session_state.sessions[st.session_state.active_session]["canon"] = list(st.session_state.get("canon", []))
     with open(SAVE_PATH, "w") as f:
         json.dump(st.session_state.sessions, f)
 
 # ---------------- First load ----------------
 if not st.session_state.get("sessions_initialized"):
+    def _default_chat_record(base_msg):
+        return {
+            "messages": [base_msg],
+            "persona": {"who": "", "role": "", "themes": "", "boundaries": ""},
+            "canon": [],
+        }
+
+    base_for_mode = _base_for(st.session_state.get("mode", "Chat"))
+
     if os.path.exists(SAVE_PATH):
         with open(SAVE_PATH, "r") as f:
             st.session_state.sessions = json.load(f)
+        # MIGRATION: if any chat value is a list, wrap it into the new dict format
+        migrated = {}
+        for name, val in st.session_state.sessions.items():
+            if isinstance(val, list):
+                migrated[name] = {
+                    "messages": val,
+                    "persona": {"who": "", "role": "", "themes": "", "boundaries": ""},
+                    "canon": [],
+                }
+            else:
+                # ensure keys exist
+                migrated[name] = {
+                    "messages": val.get("messages", [base_for_mode]),
+                    "persona": val.get("persona", {"who": "", "role": "", "themes": "", "boundaries": ""}),
+                    "canon": val.get("canon", []),
+                }
+        st.session_state.sessions = migrated
         st.session_state.active_session = list(st.session_state.sessions.keys())[0]
-        st.session_state.messages = st.session_state.sessions[st.session_state.active_session].copy()
     else:
-        # Default to Chat baseline if nothing exists yet
-        st.session_state.sessions = {"Chat 1": [CHAT_BASE]}
+        st.session_state.sessions = {"Chat 1": _default_chat_record(_base_for("Chat"))}
         st.session_state.active_session = "Chat 1"
-        st.session_state.messages = [CHAT_BASE]
+
+    # hydrate working copies for active chat
+    rec = st.session_state.sessions[st.session_state.active_session]
+    st.session_state.messages = rec["messages"].copy()
+    st.session_state.persona = dict(rec.get("persona", {}))
+    st.session_state.canon = list(rec.get("canon", []))
+
     st.session_state.sessions_initialized = True
 
 # ---------------- Sidebar ----------------
@@ -365,16 +398,26 @@ else:
 
 if session_names and selected != st.session_state.active_session:
     st.session_state.active_session = selected
-    st.session_state.messages = st.session_state.sessions[selected].copy()
+    rec = st.session_state.sessions[selected]
+    st.session_state.messages = rec["messages"].copy()
+    st.session_state.persona = dict(rec.get("persona", {}))
+    st.session_state.canon = list(rec.get("canon", []))
     st.session_state.edit_index = None
     st.rerun()
 
 if st.sidebar.button("+ New Chat"):
     new_name = f"Chat {len(st.session_state.sessions) + 1}"
     base = _base_for(st.session_state.get("mode", "Chat"))
-    st.session_state.sessions[new_name] = [base]
+    st.session_state.sessions[new_name] = {
+        "messages": [base],
+        "persona": {"who": "", "role": "", "themes": "", "boundaries": ""},
+        "canon": [],
+    }
     st.session_state.active_session = new_name
-    st.session_state.messages = [base]
+    rec = st.session_state.sessions[new_name]
+    st.session_state.messages = rec["messages"].copy()
+    st.session_state.persona = dict(rec["persona"])
+    st.session_state.canon = list(rec["canon"])
     st.session_state.edit_index = None
     save_session()
     st.rerun()
@@ -438,13 +481,22 @@ with st.sidebar.expander("🗑️ Manage Chats"):
 
     if st.button("⚠️ Delete ALL conversations"):
         base = _base_for(st.session_state.get("mode", "Chat"))
-        st.session_state.sessions = {"Chat 1": [base]}
+        st.session_state.sessions = {
+            "Chat 1": {
+                "messages": [base],
+                "persona": {"who": "", "role": "", "themes": "", "boundaries": ""},
+                "canon": [],
+            }
+        }
         st.session_state.active_session = "Chat 1"
         st.session_state.messages = [base]
+        st.session_state.persona = {"who": "", "role": "", "themes": "", "boundaries": ""}
+        st.session_state.canon = []
         if os.path.exists(SAVE_PATH):
             os.remove(SAVE_PATH)
         save_session()
         st.rerun()
+
 
 with st.sidebar.expander("📘 Chat Input Guide"):
     st.markdown("""
@@ -489,6 +541,20 @@ if st.session_state.get("mode") == "Chat":  # or: if mode == "Chat":
             height=60,
             placeholder="e.g., No breaking the fourth wall. No therapy/medical claims."
         )
+                # ✅ Place buttons RIGHT HERE, inside the expander
+        pc1, pc2 = st.columns(2)
+        with pc1:
+            if st.button("💾 Save Persona", key="save_persona"):
+                st.session_state.sessions[st.session_state.active_session]["persona"] = dict(st.session_state.persona)
+                save_session()
+                st.experimental_rerun()
+        with pc2:
+            if st.button("↩️ Reset Persona", key="reset_persona"):
+                st.session_state.persona = {"who": "", "role": "", "themes": "", "boundaries": ""}
+                st.session_state.sessions[st.session_state.active_session]["persona"] = dict(st.session_state.persona)
+                save_session()
+                st.experimental_rerun()
+
 if st.session_state.get("mode") == "Chat":
     with st.sidebar.expander("🧷 Canon (memory)"):
         if "canon" not in st.session_state or not isinstance(st.session_state.canon, list):
@@ -518,8 +584,15 @@ api_key = st.secrets["OPENROUTER_API_KEY"]
 referer_url = st.secrets["REFERER_URL"]
 model = "deepseek/deepseek-chat-v3-0324"
 
+# hydrate from active chat record if missing (safety)
+rec = st.session_state.sessions[st.session_state.active_session]
 if "messages" not in st.session_state:
-    st.session_state.messages = st.session_state.sessions[st.session_state.active_session].copy()
+    st.session_state.messages = rec["messages"].copy()
+if "persona" not in st.session_state:
+    st.session_state.persona = dict(rec.get("persona", {}))
+if "canon" not in st.session_state:
+    st.session_state.canon = list(rec.get("canon", []))
+
 if "edit_index" not in st.session_state:
     st.session_state.edit_index = None
 if "edit_text" not in st.session_state:
@@ -530,11 +603,10 @@ if "just_responded" not in st.session_state:
     st.session_state.just_responded = False
 if "regen_from_idx" not in st.session_state:
     st.session_state.regen_from_idx = None
-if "canon" not in st.session_state:
-    st.session_state.canon = []
 
 if st.session_state.just_responded:
     st.session_state.just_responded = False
+
 
 # ---------------- Page ----------------
 st.title("Chapter Zero")
