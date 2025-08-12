@@ -677,7 +677,16 @@ if st.session_state.pending_input is not None:
     else:
         model_user_content = cleaned_prompt or "(no explicit user text this turn)"
 
-    payload = [m for m in st.session_state.messages if m["role"] != "user_ui"]
+    # Build payload: include user_ui as real user messages (use cleaned text)
+    payload = []
+    for m in st.session_state.messages:
+        if m.get("role") == "user_ui":
+            payload.append({
+                "role": "user",
+                "content": m.get("cleaned") or m.get("content", "")
+            })
+        else:
+            payload.append(m)
 
      # Inject canon memory into the model before other Chat rules
     if st.session_state.get("canon"):
