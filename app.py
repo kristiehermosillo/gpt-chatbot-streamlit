@@ -390,9 +390,15 @@ if session_names:
     except ValueError:
         selected = st.sidebar.selectbox("Active Chat", session_names, index=0)
         st.session_state.active_session = session_names[0]
-        st.session_state.messages = st.session_state.sessions[session_names[0]].copy()
+    
+        rec = st.session_state.sessions[session_names[0]]
+        st.session_state.messages = rec["messages"].copy()
+        st.session_state.persona  = dict(rec.get("persona", {}))
+        st.session_state.canon    = list(rec.get("canon", []))
+    
         st.session_state.edit_index = None
         st.rerun()
+
 else:
     st.sidebar.write("No chats available yet.")
 
@@ -465,19 +471,32 @@ with st.sidebar.expander("🗑️ Manage Chats"):
     if st.button("❌ Delete this chat"):
         deleted = st.session_state.active_session
         st.session_state.sessions.pop(deleted, None)
-
+    
         if st.session_state.sessions:
             new_active = list(st.session_state.sessions.keys())[0]
             st.session_state.active_session = new_active
-            st.session_state.messages = st.session_state.sessions[new_active].copy()
+    
+            rec = st.session_state.sessions[new_active]
+            st.session_state.messages = rec["messages"].copy()
+            st.session_state.persona  = dict(rec.get("persona", {}))
+            st.session_state.canon    = list(rec.get("canon", []))
         else:
             base = _base_for(st.session_state.get("mode", "Chat"))
-            st.session_state.sessions = {"Chat 1": [base]}
+            st.session_state.sessions = {
+                "Chat 1": {
+                    "messages": [base],
+                    "persona": {"who": "", "role": "", "themes": "", "boundaries": ""},
+                    "canon": [],
+                }
+            }
             st.session_state.active_session = "Chat 1"
             st.session_state.messages = [base]
-
+            st.session_state.persona  = {"who": "", "role": "", "themes": "", "boundaries": ""}
+            st.session_state.canon    = []
+    
         save_session()
         st.rerun()
+
 
     if st.button("⚠️ Delete ALL conversations"):
         base = _base_for(st.session_state.get("mode", "Chat"))
