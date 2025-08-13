@@ -455,7 +455,7 @@ with st.sidebar.expander("🎨 Theme"):
         apply_theme(theme_choice)
         if st.session_state.get("_theme_css"):
             st.markdown(st.session_state["_theme_css"], unsafe_allow_html=True)
-        st.experimental_rerun()
+        st.rerun()
 
     # Tiny swatch preview
     if theme_choice in THEMES and THEMES[theme_choice]:
@@ -580,13 +580,14 @@ if st.session_state.get("mode") == "Chat":  # or: if mode == "Chat":
             if st.button("💾 Save Persona", key="save_persona"):
                 st.session_state.sessions[st.session_state.active_session]["persona"] = dict(st.session_state.persona)
                 save_session()
-                st.experimental_rerun()
+                st.rerun()
+
         with pc2:
             if st.button("↩️ Reset Persona", key="reset_persona"):
                 st.session_state.persona = {"who": "", "role": "", "themes": "", "boundaries": ""}
                 st.session_state.sessions[st.session_state.active_session]["persona"] = dict(st.session_state.persona)
                 save_session()
-                st.experimental_rerun()
+                st.rerun()
 
 if st.session_state.get("mode") == "Chat":
     with st.sidebar.expander("🧷 Canon (memory)"):
@@ -605,12 +606,13 @@ if st.session_state.get("mode") == "Chat":
                 lines = [line.strip() for line in (new_canon or "").splitlines() if line.strip()]
                 st.session_state.canon = lines
                 save_session()
-                st.experimental_rerun()
+                st.rerun()
+                
         with colB:
             if st.button("Clear Canon"):
                 st.session_state.canon = []
                 save_session()
-                st.experimental_rerun()
+                st.rerun()
 
 # ---------------- Ensure base state ----------------
 api_key = st.secrets["OPENROUTER_API_KEY"]
@@ -947,7 +949,7 @@ for i, msg in enumerate(st.session_state.messages):
             if st.button("📌 Pin this to canon", key=f"pin_{i}"):
                 pin_to_canon_safe(msg.get("content", ""))
                 save_session()
-                st.experimental_rerun()
+                st.rerun()
 
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
