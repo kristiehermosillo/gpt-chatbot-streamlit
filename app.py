@@ -223,7 +223,7 @@ def apply_theme(theme_name: str):
 
 # ---- THEME INIT (place BELOW apply_theme) ----
 if "theme" not in st.session_state:
-    st.session_state.theme = "Default (Streamlit)”
+    st.session_state.theme = "Default (Streamlit)"
 
 # If the saved theme is missing/renamed, fall back safely
 if st.session_state.theme not in THEMES:
