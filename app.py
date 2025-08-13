@@ -131,51 +131,34 @@ SAVE_PATH = "sessions.json"
 
 # ---- THEME SYSTEM (place ABOVE any calls to apply_theme) ----
 THEMES = {
-    "Default (Streamlit)": None,
-
-    # Light, crisp
     "Eerie Light": {
-        "bg":      "#F7F9FC",
-        "surface": "#FFFFFF",
-        "text":    "#0F172A",
-        "muted":   "#E5E7EB",
-        "accent":  "#2563EB",
-        "bubble_user":     "#F3F4F6",
-        "bubble_assistant":"#EEF2FF"
+        "bg": "#F6F7FA",         # very soft cool white
+        "surface": "#FFFFFF",    # clean white cards/bubbles
+        "text": "#1F2933",       # deep slate for high readability
+        "muted": "#A0AEC0",      # cool gray for secondary text
+        "accent": "#4A90E2"      # calm medium blue
     },
-
-    # Soft blue‑gray
     "Cadet Blue": {
-        "bg":      "#F8FAFC",
-        "surface": "#FFFFFF",
-        "text":    "#0B1220",
-        "muted":   "#D1D5DB",
-        "accent":  "#6366F1",
-        "bubble_user":     "#F1F5F9",
-        "bubble_assistant":"#E5E7EB"
+        "bg": "#E8EEF3",         # pale blue-gray background
+        "surface": "#FFFFFF",    # pure white chat bubbles
+        "text": "#1F2933",       # dark slate for clarity
+        "muted": "#94A3B8",      # soft steel gray
+        "accent": "#3B82F6"      # fresh cadet blue
     },
-
-    # Clean neutral with teal accent
     "Teal Saffron": {
-        "bg":      "#FEFEFE",
-        "surface": "#FFFFFF",
-        "text":    "#111827",
-        "muted":   "#E5E7EB",
-        "accent":  "#10B981",
-        "bubble_user":     "#F3F4F6",
-        "bubble_assistant":"#E8FAF3"
+        "bg": "#FAF8F3",         # warm parchment background
+        "surface": "#FFFFFF",    # clean white bubbles
+        "text": "#2D2A26",       # dark espresso text
+        "muted": "#A69B8F",      # warm taupe for secondary text
+        "accent": "#E6A400"      # rich saffron gold
     },
-
-    # Dark, readable
     "Licorice Earth": {
-        "bg":      "#0B0F14",
-        "surface": "#171C23",
-        "text":    "#E6EAF0",
-        "muted":   "#2B3440",
-        "accent":  "#EAB308",
-        "bubble_user":     "#1B222C",
-        "bubble_assistant":"#121820"
-    },
+        "bg": "#181A1B",         # deep charcoal background
+        "surface": "#1F2122",    # slightly lighter card background
+        "text": "#EAEAEA",       # soft light gray text
+        "muted": "#A0A0A0",      # muted gray for less important text
+        "accent": "#FFB84C"      # warm amber-gold
+    }
 }
 
 CSS_TEMPLATE = """
