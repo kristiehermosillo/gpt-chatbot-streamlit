@@ -677,9 +677,19 @@ if st.session_state.pending_input is not None:
     else:
         model_user_content = cleaned_prompt or "(no explicit user text this turn)"
 
-    # Build payload: include user_ui as real user messages (use cleaned text)
+    # --- Build payload (history) ---
+    # Convert all *previous* user_ui messages to real user turns,
+    # but SKIP the very last one (the current input), because we'll add it
+    # again below with <hidden> directives attached.
     payload = []
-    for m in st.session_state.messages:
+    msgs = st.session_state.messages
+    last_idx = len(msgs) - 1
+    
+    for i, m in enumerate(msgs):
+        # Skip the just-entered turn; it will be appended later with <hidden>
+        if i == last_idx and m.get("role") == "user_ui":
+            continue
+    
         if m.get("role") == "user_ui":
             payload.append({
                 "role": "user",
@@ -687,6 +697,12 @@ if st.session_state.pending_input is not None:
             })
         else:
             payload.append(m)
+    
+    # (… your canon/persona/guide/continuity system messages will be appended next …)
+    
+    # --- Final current user turn (WITH hidden stage directions) ---
+    payload.append({"role": "user", "content": model_user_content})
+
 
      # Inject canon memory into the model before other Chat rules
     if st.session_state.get("canon"):
