@@ -154,6 +154,7 @@ THEMES = {
     "bubble_assistant": "#1F2325"
 },
 
+}
 
 CSS_TEMPLATE = """
 <style>
