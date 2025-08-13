@@ -821,11 +821,24 @@ if st.session_state.pending_input is not None:
             st.code(st.session_state.last_error)
 
 
+# ===================== START REPLACE FROM HERE =====================
+
 # ---------------- Render ----------------
+
+# Prefill edit buffer before any widgets render
+if st.session_state.get("edit_index") is not None:
+    _i = st.session_state.edit_index
+    _k = f"edit_{_i}"
+    if _k not in st.session_state:
+        _msg = st.session_state.messages[_i]
+        _txt = _msg.get("raw", _msg.get("content", "")) if isinstance(_msg, dict) else ""
+        st.session_state[_k] = _txt
+        st.session_state.edit_text = _txt
+
 def is_placeholder(msg):
     return msg["role"] == "user" and msg["content"] == "(no explicit user text this turn)"
 
-# Robust last user-like index (search backward)
+# Robust last user like index
 last_user_like_idx = next(
     (i for i in range(len(st.session_state.messages) - 1, -1, -1)
      if st.session_state.messages[i]["role"] in ("user_ui", "user")),
@@ -834,6 +847,7 @@ last_user_like_idx = next(
 
 for i, msg in enumerate(st.session_state.messages):
     st.markdown(f'<div id="msg-{i}"></div>', unsafe_allow_html=True)
+
     role = msg["role"]
     if role == "system":
         continue
@@ -846,10 +860,11 @@ for i, msg in enumerate(st.session_state.messages):
     if editable and st.session_state.edit_index == i:
         st.markdown(f'<div id="edit-{i}"></div>', unsafe_allow_html=True)
         st.session_state.edit_text = st.text_area("✏️ Edit message", key=f"edit_{i}")
+
         c1, c2 = st.columns([1, 1])
         with c1:
             if st.button("↩️ Resend", key=f"resend_{i}"):
-                # Reuse the SAME bubble; pending handler will sanitize + store raw/clean
+                # reuse the same bubble; pending handler will sanitize and store raw/clean
                 st.session_state.messages = st.session_state.messages[:i+1]
                 st.session_state.regen_from_idx = i
                 st.session_state.pending_input = st.session_state.edit_text
@@ -863,9 +878,10 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_index = None
                 st.session_state._scroll_target = f"msg-{i}"
                 st.rerun()
+
     else:
         st.chat_message(display_role).markdown(msg["content"])
-        # 3B — Pin assistant reply to canon
+
         if role == "assistant":
             if st.button("📌 Pin this to canon", key=f"pin_{i}"):
                 pin_to_canon_safe(msg.get("content", ""))
@@ -874,9 +890,6 @@ for i, msg in enumerate(st.session_state.messages):
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
-                # prefill the text area by setting its keyed state, not by passing a value
-                st.session_state[f"edit_{i}"] = msg.get("raw", msg["content"])
-                st.session_state.edit_text = msg.get("raw", msg["content"])
                 st.session_state._scroll_target = f"edit-{i}"
                 st.rerun()
 
@@ -888,7 +901,7 @@ if last_user_like_idx is not None and st.session_state.edit_index is None and st
         st.session_state.regen_from_idx = last_user_like_idx
         last_msg = st.session_state.messages[last_user_like_idx]
         st.session_state.pending_input = last_msg.get("raw", last_msg["content"])
-        st.session_state._scroll_target = "bottom-anchor"  
+        st.session_state._scroll_target = "bottom-anchor"
         st.rerun()
 
 # Input box
@@ -896,9 +909,12 @@ if st.session_state.edit_index is None and st.session_state.pending_input is Non
     prompt = st.chat_input("Say something...")
     if prompt:
         st.session_state.pending_input = prompt
-        st.session_state._scroll_to_bottom = True
+        st.session_state._scroll_target = "bottom-anchor"
         st.rerun()
 
-# Invisible anchor AFTER chat input = real bottom of page
+# Invisible anchor at the very bottom of the page
 st.markdown('<div id="bottom-anchor"></div>', unsafe_allow_html=True)
+
+# ====================== END REPLACE UP TO HERE ======================
+
 
