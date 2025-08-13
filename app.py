@@ -6,6 +6,8 @@ import json
 import re
 import re as _re
 
+st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
+
 def pin_to_canon_safe(text: str):
     """Add a short snippet to canon without crashing if text is empty."""
     if "canon" not in st.session_state or not isinstance(st.session_state.canon, list):
@@ -18,32 +20,40 @@ def pin_to_canon_safe(text: str):
     short = " ".join(parts[-2:]) if len(parts) > 1 else snippet[:280]
     st.session_state.canon.append(short)
     
-# --- Auto-scroll to bottom when requested (runs each rerun) ---
-_force = st.session_state.pop("_scroll_to_bottom", False)
+# --- Scroll restore / target scroll ---
+target = st.session_state.pop("_scroll_target", None)
 
 components.html(
     f"""
     <script>
-      const scrollToBottom = () => {{
-        const anchor = document.getElementById("bottom-anchor");
-        if (anchor) {{
-          anchor.scrollIntoView({{ behavior: "auto", block: "end" }});
+      const targetId = {json.dumps(target)};
+      const savedY = sessionStorage.getItem("scroll-y");
+
+      function jump() {{
+        if (targetId) {{
+          const el = document.getElementById(targetId);
+          if (el) {{
+            el.scrollIntoView({{ behavior: "instant", block: "center" }});
+            return true;
+          }}
         }}
-      }};
-
-      const force = {str(_force).lower()};
-
-      if (force) {{
-        // Scroll early
-        scrollToBottom();
-
-        // Scroll again a few times to catch DOM changes
-        let tries = 5;
-        const interval = setInterval(() => {{
-          scrollToBottom();
-          if (--tries <= 0) clearInterval(interval);
-        }}, 150);
+        if (!targetId && savedY !== null) {{
+          window.scrollTo(0, parseFloat(savedY));
+          return true;
+        }}
+        return false;
       }}
+
+      let tries = 10;
+      const tryJump = () => {{
+        if (jump() || --tries <= 0) clearInterval(timer);
+      }};
+      tryJump();
+      const timer = setInterval(tryJump, 120);
+
+      window.addEventListener("scroll", () => {{
+        sessionStorage.setItem("scroll-y", String(window.scrollY));
+      }});
     </script>
     """,
     height=0,
@@ -120,7 +130,6 @@ def extract_stage_directions(text: str):
     return clean, notes
 
 # ---------------- UI helpers ----------------
-st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
 st.markdown(
     """
     <style>
@@ -819,6 +828,7 @@ last_user_like_idx = next(
 )
 
 for i, msg in enumerate(st.session_state.messages):
+    st.markdown(f'<div id="msg-{i}"></div>', unsafe_allow_html=True)
     role = msg["role"]
     if role == "system":
         continue
@@ -829,6 +839,7 @@ for i, msg in enumerate(st.session_state.messages):
     editable = role in ("user_ui", "user")
 
     if editable and st.session_state.edit_index == i:
+        st.markdown(f'<div id="edit-{i}"></div>', unsafe_allow_html=True)
         st.session_state.edit_text = st.text_area("✏️ Edit message", st.session_state.edit_text, key=f"edit_{i}")
         c1, c2 = st.columns([1, 1])
         with c1:
@@ -839,13 +850,13 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.pending_input = st.session_state.edit_text
                 st.session_state.edit_index = None
                 save_session()
-                st.session_state._scroll_to_bottom = True
+                st.session_state._scroll_target = f"edit-{i}"
                 st.rerun()
 
         with c2:
             if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
-                st.session_state._scroll_to_bottom = True
+                st.session_state._scroll_target = f"msg-{i}"
                 st.rerun()
     else:
         st.chat_message(display_role).markdown(msg["content"])
@@ -859,7 +870,7 @@ for i, msg in enumerate(st.session_state.messages):
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = msg.get("raw", msg["content"])
-                st.session_state._scroll_to_bottom = True
+                st.session_state._scroll_target = f"edit-{i}"
                 st.rerun()
 
 
@@ -871,7 +882,7 @@ if last_user_like_idx is not None and st.session_state.edit_index is None and st
         st.session_state.regen_from_idx = last_user_like_idx
         last_msg = st.session_state.messages[last_user_like_idx]
         st.session_state.pending_input = last_msg.get("raw", last_msg["content"])
-        st.session_state._scroll_to_bottom = True  
+        st.session_state._scroll_target = "bottom-anchor"  
         st.rerun()
 
 # Input box
