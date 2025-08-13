@@ -840,13 +840,13 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_index = None
                 save_session()
                 st.session_state._scroll_to_bottom = True
-                st.experimental_rerun()
+                st.rerun()
 
         with c2:
             if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
                 st.session_state._scroll_to_bottom = True
-                st.experimental_rerun()
+                st.rerun()
     else:
         st.chat_message(display_role).markdown(msg["content"])
         # 3B — Pin assistant reply to canon
@@ -860,7 +860,7 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = msg.get("raw", msg["content"])
                 st.session_state._scroll_to_bottom = True
-                st.experimental_rerun()
+                st.rerun()
 
 
 # Regenerate using the same user bubble
@@ -872,7 +872,7 @@ if last_user_like_idx is not None and st.session_state.edit_index is None and st
         last_msg = st.session_state.messages[last_user_like_idx]
         st.session_state.pending_input = last_msg.get("raw", last_msg["content"])
         st.session_state._scroll_to_bottom = True  
-        st.experimental_rerun()
+        st.rerun()
 
 # Input box
 if st.session_state.edit_index is None and st.session_state.pending_input is None:
