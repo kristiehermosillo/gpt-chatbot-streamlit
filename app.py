@@ -872,6 +872,7 @@ if last_user_like_idx is not None and st.session_state.edit_index is None and st
         last_msg = st.session_state.messages[last_user_like_idx]
         st.session_state.pending_input = last_msg.get("raw", last_msg["content"])
         st.session_state._scroll_to_bottom = True  
+        st.experimental_rerun()
 
 # Input box
 if st.session_state.edit_index is None and st.session_state.pending_input is None:
