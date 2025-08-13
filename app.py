@@ -17,6 +17,26 @@ def pin_to_canon_safe(text: str):
     parts = re.split(r'(?<=[.!?])\s+', snippet)
     short = " ".join(parts[-2:]) if len(parts) > 1 else snippet[:280]
     st.session_state.canon.append(short)
+    
+# --- Auto-scroll to bottom when requested (runs each rerun) ---
+_force = st.session_state.pop("_scroll_to_bottom", False)
+
+components.html(
+    f"""
+    <script>
+      window.addEventListener('load', () => {{
+        const forceBottom = {str(_force).lower()};
+        if (forceBottom) {{
+          // scroll after the DOM is painted
+          setTimeout(() => {{
+            window.scrollTo(0, document.body.scrollHeight);
+          }}, 0);
+        }}
+      }});
+    </script>
+    """,
+    height=0,
+)
 
 # --- Bracket enforcement helpers ---
 _STOPWORDS = {"the","a","an","and","or","but","if","then","so","to","for","of","in","on","at","with","by","from","as","that","this","these","those","be","is","am","are","was","were","it","you","me","my","your","we","they","he","she","him","her","them","i"}
@@ -572,6 +592,7 @@ if st.session_state.pending_input is not None:
         st.session_state.messages.append({"role": "assistant", "content": literal})
         save_session()
         st.session_state.just_responded = True
+        st.session_state._scroll_to_bottom = True  
         st.rerun()
     
 # --- Build payload for the model ---
@@ -774,6 +795,7 @@ if st.session_state.pending_input is not None:
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 save_session()
                 st.session_state.just_responded = True
+                st.session_state._scroll_to_bottom = True   
                 st.rerun()
     
     except Exception as e:
@@ -825,6 +847,7 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.pending_input = st.session_state.edit_text
                 st.session_state.edit_index = None
                 save_session()
+                st.session_state._scroll_to_bottom = True
                 st.rerun()
 
         with c2:
@@ -854,6 +877,7 @@ if last_user_like_idx is not None and st.session_state.edit_index is None and st
         st.session_state.regen_from_idx = last_user_like_idx
         last_msg = st.session_state.messages[last_user_like_idx]
         st.session_state.pending_input = last_msg.get("raw", last_msg["content"])
+        st.session_state._scroll_to_bottom = True  
         st.rerun()
 
 # Input box
@@ -861,4 +885,5 @@ if st.session_state.edit_index is None and st.session_state.pending_input is Non
     prompt = st.chat_input("Say something...")
     if prompt:
         st.session_state.pending_input = prompt
+        st.session_state._scroll_to_bottom = True
         st.rerun()
