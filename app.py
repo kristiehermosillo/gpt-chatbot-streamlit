@@ -181,9 +181,18 @@ div[data-testid="stChatMessage"] > div {
 .stButton button:hover { filter: brightness(0.95); }
 /* Code + expander borders */
 .stCodeBlock, .stExpander { border-color: var(--muted) !important; }
+
+/* Alerts / exceptions – keep readable with custom theme */
+.stAlert, .stException {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--muted) !important;
+}
+.stAlert * , .stException * {
+  color: var(--text) !important;
+}
 </style>
 """
-
 def apply_theme(theme_name: str):
     """Build CSS without f-strings so braces `{}` never crash."""
     if theme_name not in THEMES or THEMES[theme_name] is None:
@@ -373,6 +382,10 @@ if not st.session_state.get("sessions_initialized"):
 
 # ---------------- Sidebar ----------------
 st.sidebar.header("Chats")
+
+# 🐛 Debug toggle (put right under the header)
+DEBUG = st.sidebar.toggle("🐛 Debug", value=False, help="Show last error and payload tail")
+
 if "sessions" not in st.session_state:
     st.session_state.sessions = {}
 if "active_session" not in st.session_state:
@@ -669,14 +682,6 @@ if st.session_state.pending_input is not None:
         save_session()
         st.session_state.just_responded = True
         st.rerun()
-
-    # --- Build payload for the model ---
-    # Build the user message for the model (prepend hidden directions in Chat mode)
-    if st.session_state.mode == "Chat" and directives:
-        hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
-        model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
-    else:
-        model_user_content = cleaned_prompt or "(no explicit user text this turn)"
     
 # --- Build payload for the model ---
 
@@ -811,6 +816,10 @@ if st.session_state.pending_input is not None:
     if sent_cap:
         body["max_tokens"] = 140 if sent_cap <= 2 else 220
 
+    # Keep the last few messages for debugging
+    last_payload_tail = payload[-5:] if len(payload) > 5 else payload
+    st.session_state.pop("last_error", None)  # clear old error
+    
     # Call API with one optional enforcement retry
     def _call_openrouter(messages, temperature=0.4):
         body_local = {
@@ -838,7 +847,9 @@ if st.session_state.pending_input is not None:
             resp = _call_openrouter(payload, temperature=0.4)
     
             if resp.status_code != 200:
-                st.error(f"API Error {resp.status_code}: {resp.text}")
+                msg = f"API Error {resp.status_code}: {resp.text}"
+                st.session_state.last_error = msg
+                st.error(msg)
                 st.session_state.just_responded = False
             else:
                 reply = resp.json()["choices"][0]["message"]["content"]
@@ -875,9 +886,20 @@ if st.session_state.pending_input is not None:
                 st.rerun()
     
     except Exception as e:
-        st.error(f"Request failed: {e}")
+        st.session_state.last_error = f"Request failed: {e}"
+        st.error(st.session_state.last_error)
     finally:
         st.session_state.just_responded = False
+# ---------------- Debug panel ----------------
+    if DEBUG:
+        st.subheader("Debug")
+        st.write("Directives parsed this turn:")
+        st.code(directives)
+        st.write("Payload tail (last ~5 messages sent to the model):")
+        st.code(last_payload_tail)
+        if "last_error" in st.session_state:
+            st.write("Last error:")
+            st.code(st.session_state.last_error)
 
 
 # ---------------- Render ----------------
