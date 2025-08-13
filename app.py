@@ -27,10 +27,10 @@ components.html(
       function scrollToBottomIfNeeded() {{
         const forceBottom = {str(_force).lower()};
         if (forceBottom) {{
-          try {{ sessionStorage.setItem("scroll-y", "9999999"); }} catch(e) {{}}
-          setTimeout(() => {
-              window.scrollTo(0, document.body.scrollHeight);
-            }, 50);  // give DOM time to settle
+          try {{ sessionStorage.setItem("scroll-y", "9999999"); }} catch(e) {{ }}
+          setTimeout(function() {{
+            window.scrollTo(0, document.body.scrollHeight);
+          }}, 50);
         }}
       }}
 
