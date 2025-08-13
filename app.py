@@ -699,10 +699,6 @@ if st.session_state.pending_input is not None:
             payload.append(m)
     
     # (… your canon/persona/guide/continuity system messages will be appended next …)
-    
-    # --- Final current user turn (WITH hidden stage directions) ---
-    payload.append({"role": "user", "content": model_user_content})
-
 
      # Inject canon memory into the model before other Chat rules
     if st.session_state.get("canon"):
