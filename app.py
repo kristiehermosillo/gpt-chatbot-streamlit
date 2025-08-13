@@ -7,6 +7,11 @@ import re
 import re as _re
 
 st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
+st.markdown("""
+<style>
+*, ::before, ::after { overflow-anchor: none !important; }
+</style>
+""", unsafe_allow_html=True)
 
 def pin_to_canon_safe(text: str):
     """Add a short snippet to canon without crashing if text is empty."""
@@ -840,7 +845,7 @@ for i, msg in enumerate(st.session_state.messages):
 
     if editable and st.session_state.edit_index == i:
         st.markdown(f'<div id="edit-{i}"></div>', unsafe_allow_html=True)
-        st.session_state.edit_text = st.text_area("✏️ Edit message", st.session_state.edit_text, key=f"edit_{i}")
+        st.session_state.edit_text = st.text_area("✏️ Edit message", key=f"edit_{i}")
         c1, c2 = st.columns([1, 1])
         with c1:
             if st.button("↩️ Resend", key=f"resend_{i}"):
@@ -850,7 +855,7 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.pending_input = st.session_state.edit_text
                 st.session_state.edit_index = None
                 save_session()
-                st.session_state._scroll_target = f"edit-{i}"
+                st.session_state._scroll_target = "bottom-anchor"
                 st.rerun()
 
         with c2:
@@ -868,11 +873,12 @@ for i, msg in enumerate(st.session_state.messages):
 
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
-                st.session_state.edit_index = i
-                st.session_state.edit_text = msg.get("raw", msg["content"])
-                st.session_state._scroll_target = f"edit-{i}"
-                st.rerun()
-
+            st.session_state.edit_index = i
+            # prefill the text area by setting its keyed state, not by passing a value
+            st.session_state[f"edit_{i}"] = msg.get("raw", msg["content"])
+            st.session_state.edit_text = msg.get("raw", msg["content"])
+            st.session_state._scroll_target = f"edit-{i}"
+            st.rerun()
 
 # Regenerate using the same user bubble
 if last_user_like_idx is not None and st.session_state.edit_index is None and st.session_state.pending_input is None:
