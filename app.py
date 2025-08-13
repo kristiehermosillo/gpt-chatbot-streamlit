@@ -132,11 +132,44 @@ SAVE_PATH = "sessions.json"
 # ---- THEME SYSTEM (place ABOVE any calls to apply_theme) ----
 THEMES = {
     "Default (Streamlit)": None,
-    "Eerie Light":   {"bg":"#FAFAFF","surface":"#EEF0F2","text":"#1C1C1C","muted":"#DADDD8","accent":"#ECEBE4"},
-    "Cadet Blue":    {"bg":"#FEFCFD","surface":"#BFCDE0","text":"#000505","muted":"#5D5D81","accent":"#3B3355"},
-    "Teal Saffron":  {"bg":"#FEFCFD","surface":"#E9C46A","text":"#000505","muted":"#2A9D8F","accent":"#E76F51"},
-    "Licorice Earth":{"bg":"#000000","surface":"#2A1A1F","text":"#FAFAFF","muted":"#AD8350","accent":"#AFA060"},
+
+    # Light, crisp
+    "Eerie Light": {
+        "bg":      "#FAFAFF",
+        "surface": "#F2F4F7",
+        "text":    "#0B1220",
+        "muted":   "#D0D5DD",
+        "accent":  "#3B82F6"   # vivid blue
+    },
+
+    # Soft blue-gray
+    "Cadet Blue": {
+        "bg":      "#F9FAFB",
+        "surface": "#E5E7EB",
+        "text":    "#111827",
+        "muted":   "#CBD5E1",
+        "accent":  "#6366F1"   # indigo
+    },
+
+    # Teal + warm accent (balanced)
+    "Teal Saffron": {
+        "bg":      "#FEFEFE",
+        "surface": "#F3F4F6",
+        "text":    "#0F172A",
+        "muted":   "#D1D5DB",
+        "accent":  "#10B981"   # teal (changed from heavy saffron surface)
+    },
+
+    # Dark, readable
+    "Licorice Earth": {
+        "bg":      "#0B0F14",
+        "surface": "#171C23",
+        "text":    "#E6EAF0",
+        "muted":   "#2B3440",
+        "accent":  "#EAB308"   # warm gold
+    },
 }
+
 
 CSS_TEMPLATE = """
 <style>
@@ -147,52 +180,83 @@ CSS_TEMPLATE = """
   --muted: __MUTED__;
   --accent: __ACCENT__;
 }
+
 /* App background + text */
 .stApp, .stApp header, .stApp footer {
   background: var(--bg) !important;
   color: var(--text) !important;
 }
+
 /* Sidebar */
 section[data-testid="stSidebar"] > div {
   background: var(--surface) !important;
   color: var(--text) !important;
   border-right: 1px solid var(--muted) !important;
 }
+
 /* Chat input */
 .stChatInput textarea {
   background: var(--surface) !important;
   color: var(--text) !important;
   border: 1px solid var(--muted) !important;
+  border-radius: 10px !important;
 }
-/* Chat bubbles */
+
+/* Chat bubbles – give them space + separation */
+div[data-testid="stChatMessage"] {
+  margin-bottom: 10px !important;
+}
 div[data-testid="stChatMessage"] > div {
   background: var(--surface) !important;
   color: var(--text) !important;
   border: 1px solid var(--muted) !important;
   border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+  padding: 10px 12px !important;
 }
-/* Buttons */
+
+/* Make user vs assistant slightly different without fighting Streamlit */
+div[data-testid="stChatMessage"]:has(> [data-testid="stMarkdownContainer"]) {
+  background: transparent !important;
+}
+div[data-testid="stChatMessage"].st-emotion-cache-1cypcdb, /* assistant (fallback) */
+div[data-testid="stChatMessage"][data-testid="stChatMessage-Assistant"] > div {
+  background: color-mix(in oklab, var(--surface), black 4%) !important;
+}
+
+/* Buttons – higher contrast */
 .stButton button {
   background: var(--accent) !important;
-  color: var(--bg) !important;
+  color: #FFFFFF !important;            /* <- force readable text */
   border: none !important;
   border-radius: 8px !important;
+  font-weight: 600 !important;
 }
 .stButton button:hover { filter: brightness(0.95); }
-/* Code + expander borders */
-.stCodeBlock, .stExpander { border-color: var(--muted) !important; }
 
-/* Alerts / exceptions – keep readable with custom theme */
+/* Selects, radio, inputs */
+.stSelectbox div[data-baseweb="select"] > div,
+.stRadio, .stTextInput, .stTextArea, .stNumberInput {
+  color: var(--text) !important;
+}
+
+/* Code blocks + expanders */
+.stCodeBlock, .stExpander {
+  border-color: var(--muted) !important;
+}
+
+/* Alerts / exceptions – readable on all themes */
 .stAlert, .stException {
   background: var(--surface) !important;
   color: var(--text) !important;
   border: 1px solid var(--muted) !important;
 }
-.stAlert * , .stException * {
+.stAlert *, .stException * {
   color: var(--text) !important;
 }
 </style>
 """
+
 def apply_theme(theme_name: str):
     """Build CSS without f-strings so braces `{}` never crash."""
     if theme_name not in THEMES or THEMES[theme_name] is None:
