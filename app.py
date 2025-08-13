@@ -24,19 +24,23 @@ _force = st.session_state.pop("_scroll_to_bottom", False)
 components.html(
     f"""
     <script>
-      window.addEventListener('load', () => {{
+      function scrollToBottomIfNeeded() {{
         const forceBottom = {str(_force).lower()};
         if (forceBottom) {{
           try {{ sessionStorage.setItem("scroll-y", "9999999"); }} catch(e) {{}}
-          setTimeout(() => {{
-            window.scrollTo(0, document.body.scrollHeight);
-          }}, 0);
+          setTimeout(() => {
+              window.scrollTo(0, document.body.scrollHeight);
+            }, 50);  // give DOM time to settle
         }}
-      }});
+      }}
+
+      window.addEventListener('load', scrollToBottomIfNeeded);
+      document.addEventListener('DOMContentLoaded', scrollToBottomIfNeeded);
     </script>
     """,
     height=0,
 )
+
 
 
 # --- Bracket enforcement helpers ---
