@@ -27,21 +27,21 @@ components.html(
       function scrollToBottomIfNeeded() {{
         const forceBottom = {str(_force).lower()};
         if (forceBottom) {{
-          try {{ sessionStorage.setItem("scroll-y", "9999999"); }} catch(e) {{ }}
-          setTimeout(function() {{
-            window.scrollTo(0, document.body.scrollHeight);
-          }}, 50);
+          const anchor = document.getElementById("bottom-anchor");
+          if (anchor) {{
+            anchor.scrollIntoView({{ behavior: "smooth", block: "end" }});
+          }}
         }}
       }}
 
-      window.addEventListener('load', scrollToBottomIfNeeded);
-      document.addEventListener('DOMContentLoaded', scrollToBottomIfNeeded);
+      // Delay scroll to wait for DOM render
+      window.addEventListener("load", () => {{
+        setTimeout(scrollToBottomIfNeeded, 100);
+      }});
     </script>
     """,
     height=0,
 )
-
-
 
 # --- Bracket enforcement helpers ---
 _STOPWORDS = {"the","a","an","and","or","but","if","then","so","to","for","of","in","on","at","with","by","from","as","that","this","these","those","be","is","am","are","was","were","it","you","me","my","your","we","they","he","she","him","her","them","i"}
@@ -892,6 +892,10 @@ if last_user_like_idx is not None and st.session_state.edit_index is None and st
         last_msg = st.session_state.messages[last_user_like_idx]
         st.session_state.pending_input = last_msg.get("raw", last_msg["content"])
         st.session_state._scroll_to_bottom = True  
+
+# Invisible anchor at bottom of page to scroll to
+scroll_anchor = '<div id="bottom-anchor"></div>'
+st.markdown(scroll_anchor, unsafe_allow_html=True)
 
 # Input box
 if st.session_state.edit_index is None and st.session_state.pending_input is None:
