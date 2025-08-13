@@ -131,30 +131,49 @@ SAVE_PATH = "sessions.json"
 
 # ---- THEME SYSTEM (place ABOVE any calls to apply_theme) ----
 THEMES = {
-    "Default (Streamlit)": None,  # keep this so older sessions don't break
+    "Default (Streamlit)": None,
 
-    "Eerie Light": {
-    "bg": "#F6F7FA", "surface": "#FFFFFF", "text": "#1F2933", "muted": "#A0AEC0", "accent": "#4A90E2",
-    "bubble_user": "#EFF4FF",        # light indigo tint
-    "bubble_assistant": "#F7F7FA"    # neutral light gray
-},
-"Cadet Blue": {
-    "bg": "#E8EEF3", "surface": "#FFFFFF", "text": "#1F2933", "muted": "#94A3B8", "accent": "#3B82F6",
-    "bubble_user": "#ECF2FF",
-    "bubble_assistant": "#F7FAFC"
-},
-"Teal Saffron": {
-    "bg": "#FAF8F3", "surface": "#FFFFFF", "text": "#2D2A26", "muted": "#A69B8F", "accent": "#E6A400",
-    "bubble_user": "#FFF7E6",        # soft warm
-    "bubble_assistant": "#FDFCF8"
-},
-"Licorice Earth": {
-    "bg": "#181A1B", "surface": "#1F2122", "text": "#EAEAEA", "muted": "#A0A0A0", "accent": "#FFB84C",
-    "bubble_user": "#26292B",
-    "bubble_assistant": "#1F2325"
-},
+    "Mist Grey": {
+        "bg": "#F6F7F9",
+        "surface": "#FFFFFF",
+        "text": "#1F2933",
+        "muted": "#D1D5DB",
+        "accent": "#2563EB",
+        "bubble_user": "#EEF2FF",       # indigo‑50
+        "bubble_assistant": "#F9FAFB"   # near‑white
+    },
 
+    "Coastal": {
+        "bg": "#F5FAFA",
+        "surface": "#FFFFFF",
+        "text": "#102A43",
+        "muted": "#C7D1D9",
+        "accent": "#0EA5E9",
+        "bubble_user": "#E0F2FE",       # sky‑100
+        "bubble_assistant": "#F0FDFA"   # teal‑50
+    },
+
+    "Olive Sand": {
+        "bg": "#FAF8F3",
+        "surface": "#FFFFFF",
+        "text": "#2B2A27",
+        "muted": "#D6CEC2",
+        "accent": "#B7791F",
+        "bubble_user": "#FFF7ED",       # amber‑50
+        "bubble_assistant": "#F7F7F4"   # warm grey‑50
+    },
+
+    "Pitch Night": {
+        "bg": "#0B0F14",
+        "surface": "#131820",
+        "text": "#E6EAF0",
+        "muted": "#2A3340",
+        "accent": "#F59E0B",
+        "bubble_user": "#111827",       # slate‑900
+        "bubble_assistant": "#0F172A"   # slate‑950
+    },
 }
+
 
 CSS_TEMPLATE = """
 <style>
@@ -169,39 +188,50 @@ CSS_TEMPLATE = """
 }
 
 /* App + sidebar */
-.stApp, .stApp header, .stApp footer { background: var(--bg) !important; color: var(--text) !important; }
-section[data-testid="stSidebar"] > div {
-  background: var(--surface) !important; color: var(--text) !important; border-right: 1px solid var(--muted) !important;
+.stApp, .stApp header, .stApp footer{ background: var(--bg)!important; color: var(--text)!important; }
+section[data-testid="stSidebar"] > div{
+  background: var(--surface)!important; color: var(--text)!important; border-right: 1px solid var(--muted)!important;
 }
 
-/* Inputs */
+/* Typography */
+html, body, .stApp { font-kerning: normal; -webkit-font-smoothing: antialiased; }
+.stMarkdown, .stChatMessage, .stText, .stCodeBlock { font-size: 0.98rem; line-height: 1.55; }
+
+/* Chat input */
 .stChatInput textarea{
-  background: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--muted) !important; border-radius: 10px !important;
+  background: var(--surface)!important; color: var(--text)!important;
+  border: 1px solid var(--muted)!important; border-radius: 12px!important; padding: .6rem .8rem!important;
 }
 
 /* Chat bubbles */
-div[data-testid="stChatMessage"]{ margin-bottom: 12px !important; }
-div[data-testid="stChatMessage"][data-testid*="user"] > div,
-div[data-testid="stChatMessage"]:has(> [data-testid="user-avatar"]) > div {
-  background: var(--bubble-user) !important; color: var(--text) !important; border: 1px solid var(--muted) !important; border-radius: 14px !important; box-shadow: 0 1px 2px rgba(0,0,0,.04) !important;
+div[data-testid="stChatMessage"]{ margin-bottom: 14px!important; }
+div[data-testid="stChatMessage"] > div{
+  border-radius: 16px!important; border: 1px solid var(--muted)!important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05)!important;
 }
-div[data-testid="stChatMessage"][data-testid*="assistant"] > div,
-div[data-testid="stChatMessage"]:has(> [data-testid="assistant-avatar"]) > div {
-  background: var(--bubble-assistant) !important; color: var(--text) !important; border: 1px solid var(--muted) !important; border-radius: 14px !important; box-shadow: 0 1px 2px rgba(0,0,0,.05) !important;
+div[data-testid="stChatMessage"]:has(> [data-testid="user-avatar"]) > div{
+  background: var(--bubble-user)!important; 
+}
+div[data-testid="stChatMessage"]:has(> [data-testid="assistant-avatar"]) > div{
+  background: var(--bubble-assistant)!important;
 }
 
 /* Buttons */
 .stButton button{
-  background: var(--accent) !important; color: #fff !important; border: none !important; border-radius: 8px !important; font-weight: 600 !important;
+  background: var(--accent)!important; color: #fff!important; border: none!important;
+  border-radius: 10px!important; font-weight: 600!important; padding: .5rem .8rem!important;
 }
-.stButton button:hover{ filter: brightness(.95); }
+.stButton button:hover{ filter: brightness(.96); }
 
-/* Misc */
-.stCodeBlock, .stExpander { border-color: var(--muted) !important; }
-.stAlert, .stException { background: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--muted) !important; }
-.stAlert *, .stException * { color: var(--text) !important; }
+/* Misc containers */
+.stCodeBlock, .stExpander{ border-color: var(--muted)!important; }
+.stAlert, .stException{
+  background: var(--surface)!important; color: var(--text)!important; border: 1px solid var(--muted)!important;
+}
+.stAlert *, .stException *{ color: var(--text)!important; }
 </style>
 """
+
 
 
 def apply_theme(theme_name: str):
