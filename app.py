@@ -29,15 +29,14 @@ components.html(
         if (forceBottom) {{
           const anchor = document.getElementById("bottom-anchor");
           if (anchor) {{
-            anchor.scrollIntoView({{ behavior: "smooth", block: "end" }});
+            setTimeout(() => {{
+              anchor.scrollIntoView({{ behavior: "auto", block: "end" }});
+            }}, 100);
           }}
         }}
       }}
 
-      // Delay scroll to wait for DOM render
-      window.addEventListener("load", () => {{
-        setTimeout(scrollToBottomIfNeeded, 100);
-      }});
+      window.addEventListener("load", scrollToBottomIfNeeded);
     </script>
     """,
     height=0,
@@ -125,34 +124,6 @@ st.markdown(
     </style>
     """,
     unsafe_allow_html=True
-)
-
-# --- Sticky scroll across reruns (prevents jumping to top) ---
-components.html(
-    """
-    <script>
-      (function() {
-        const save = () => {
-          try { sessionStorage.setItem("scroll-y", String(window.scrollY || 0)); } catch(e) {}
-        };
-        window.addEventListener("scroll", save, { passive: true });
-        window.addEventListener("beforeunload", save);
-
-        window.addEventListener("load", () => {
-          let tries = 30;
-          const saved = sessionStorage.getItem("scroll-y");
-          if (saved !== null) {
-            const targetY = parseInt(saved, 10) || 0;
-            const id = setInterval(() => {
-              window.scrollTo(0, targetY);
-              if (--tries <= 0) clearInterval(id);
-            }, 50);
-          }
-        });
-      })();
-    </script>
-    """,
-    height=0,
 )
 
 # Ensure 'canon' exists early so any UI can use it safely
