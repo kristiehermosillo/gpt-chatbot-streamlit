@@ -680,136 +680,136 @@ if st.session_state.pending_input is not None:
     
 # --- Build payload for the model ---
 
-# Build the user message for the model (prepend hidden directions in Chat mode)
-if st.session_state.mode == "Chat" and directives:
-    hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
-    model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
-else:
-    model_user_content = cleaned_prompt or "(no explicit user text this turn)"
-
-# Build a fresh payload from scratch:
-payload = []
-
-# 1) Start with the single base system message (fresh every turn)
-payload.append(_base_for(st.session_state.get("mode", "Chat")))
-
-# 2) Include prior conversation history BUT:
-#    - Convert earlier user_ui bubbles to plain user (cleaned of brackets)
-#    - SKIP any prior system messages (we control system messages freshly each turn)
-msgs = st.session_state.messages
-last_idx = len(msgs) - 1
-for i, m in enumerate(msgs):
-    role = m.get("role")
-
-    # Skip prior system messages entirely to avoid conflicting/old rules
-    if role == "system":
-        continue
-
-    # Skip the just-entered user turn; we will add it at the end WITH <hidden>
-    if i == last_idx and role == "user_ui":
-        continue
-
-    if role == "user_ui":
-        payload.append({
-            "role": "user",
-            "content": m.get("cleaned") or m.get("content", "")
-        })
+    # Build the user message for the model (prepend hidden directions in Chat mode)
+    if st.session_state.mode == "Chat" and directives:
+        hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
+        model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
     else:
-        payload.append(m)
-
-# 3) Append current per-turn system helpers (BEFORE the final user turn)
-
-# Canon memory (if any)
-if st.session_state.get("canon"):
-    payload.append({
-        "role": "system",
-        "content": "CONTINUITY RECAP (for reference only, do not repeat to user):\n" + "\n".join(st.session_state.canon)
-    })
-
-# Persona (Chat only)
-if st.session_state.mode == "Chat":
-    p = st.session_state.get("persona", {})
-    persona_bits = []
-    if p.get("who"):        persona_bits.append(f"Persona: {p['who']}")
-    if p.get("role"):       persona_bits.append(f"Voice/Role: {p['role']}")
-    if p.get("themes"):     persona_bits.append(f"Themes/Setting to keep present: {p['themes']}")
-    if p.get("boundaries"): persona_bits.append(f"Hard boundaries: {p['boundaries']}")
-    if persona_bits:
+        model_user_content = cleaned_prompt or "(no explicit user text this turn)"
+    
+    # Build a fresh payload from scratch:
+    payload = []
+    
+    # 1) Start with the single base system message (fresh every turn)
+    payload.append(_base_for(st.session_state.get("mode", "Chat")))
+    
+    # 2) Include prior conversation history BUT:
+    #    - Convert earlier user_ui bubbles to plain user (cleaned of brackets)
+    #    - SKIP any prior system messages (we control system messages freshly each turn)
+    msgs = st.session_state.messages
+    last_idx = len(msgs) - 1
+    for i, m in enumerate(msgs):
+        role = m.get("role")
+    
+        # Skip prior system messages entirely to avoid conflicting/old rules
+        if role == "system":
+            continue
+    
+        # Skip the just-entered user turn; we will add it at the end WITH <hidden>
+        if i == last_idx and role == "user_ui":
+            continue
+    
+        if role == "user_ui":
+            payload.append({
+                "role": "user",
+                "content": m.get("cleaned") or m.get("content", "")
+            })
+        else:
+            payload.append(m)
+    
+    # 3) Append current per-turn system helpers (BEFORE the final user turn)
+    
+    # Canon memory (if any)
+    if st.session_state.get("canon"):
         payload.append({
             "role": "system",
-            "content": "CHAT MODE PERSISTENT PERSONA (do not state this aloud; just follow):\n" + "\n".join(persona_bits)
+            "content": "CONTINUITY RECAP (for reference only, do not repeat to user):\n" + "\n".join(st.session_state.canon)
         })
-
-# Mode rules
-if st.session_state.mode == "Story" and not directives:
-    payload.append({
-        "role": "system",
-        "content": (
-            "Take the user's prompt as the next line in a story. "
-            "Keep all original meaning and continuity intact. "
-            "Enhance with vivid imagery and emotion. "
-            "Build from exactly what was written."
-        )
-    })
-if st.session_state.mode == "Chat":
-    payload.append({"role": "system", "content": CHAT_GUIDE_RULE})
-    payload.append({"role": "system", "content": (
-        "Be creative, but keep the scene logically coherent. "
-        "Do not contradict established facts from earlier turns. "
-        "If the current scene implies a place, do not suddenly act from a different place. "
-        "If you need to change location or add a big step (e.g., going outside, driving somewhere), "
-        "first include a brief transition from the current situation, then continue. "
-        "Keep transitions short (one concise clause)."
-    )})
-
-# Bracket handler emphasis this turn (optional but helps)
-sent_cap = None
-if st.session_state.mode == "Chat" and directives:
-    sent_cap = _extract_length_hint_from_list(directives)
-    dir_text = "\n".join(f"- {d.strip()}" for d in directives if d.strip())
-    wants_clean = any(re.search(r"\b(non[-\s]?explicit|clean|pg)\b", d, re.I) for d in directives)
-    wants_explicit = any(re.search(r"\bexplicit\b", d, re.I) for d in directives)
-
-    priority_lines = [
-        "THIS TURN ONLY — follow the hidden stage notes in the user's message.",
-        "Do NOT show, quote, paraphrase, or mention hidden text or instructions.",
-        "Integrate the stage directions exactly once, naturally (action as action, speech as spoken lines).",
-    ]
-    if sent_cap:
-        priority_lines.append(f"Keep the reply within {sent_cap} sentences.")
-    if wants_clean and not wants_explicit:
-        priority_lines.append("Keep language non‑explicit / PG for this turn.")
-
-    payload.append({"role": "system", "content": "\n".join(priority_lines)})
-    payload.append({"role": "system", "content": HIDDEN_TAG_GUIDE})
-
-# Continuity anchor (Chat only)
-if st.session_state.mode == "Chat":
-    last_beat = _last_assistant_text(st.session_state.messages)
-    if last_beat:
-        anchor = last_beat[-400:]
+    
+    # Persona (Chat only)
+    if st.session_state.mode == "Chat":
+        p = st.session_state.get("persona", {})
+        persona_bits = []
+        if p.get("who"):        persona_bits.append(f"Persona: {p['who']}")
+        if p.get("role"):       persona_bits.append(f"Voice/Role: {p['role']}")
+        if p.get("themes"):     persona_bits.append(f"Themes/Setting to keep present: {p['themes']}")
+        if p.get("boundaries"): persona_bits.append(f"Hard boundaries: {p['boundaries']}")
+        if persona_bits:
+            payload.append({
+                "role": "system",
+                "content": "CHAT MODE PERSISTENT PERSONA (do not state this aloud; just follow):\n" + "\n".join(persona_bits)
+            })
+    
+    # Mode rules
+    if st.session_state.mode == "Story" and not directives:
         payload.append({
             "role": "system",
             "content": (
-                "CONTINUITY ANCHOR (Chat mode):\n"
-                "Stay in the same immediate scene (location, characters, objects, timeline) as the recent reply, "
-                "unless the USER moves it. If you must change location/time, insert a brief transition FIRST "
-                "(one short clause), then continue. No sudden teleports.\n\n"
-                f"Recent scene excerpt:\n{anchor}"
+                "Take the user's prompt as the next line in a story. "
+                "Keep all original meaning and continuity intact. "
+                "Enhance with vivid imagery and emotion. "
+                "Build from exactly what was written."
             )
         })
-
-# 4) Final user turn — add it ONCE, AFTER all system instructions
-payload.append({"role": "user", "content": model_user_content})
-
-# Build request body
-body = {
-    "model": model,
-    "messages": payload,
-    "temperature": 0.3,
-}
-if sent_cap:
-    body["max_tokens"] = 140 if sent_cap <= 2 else 220
+    if st.session_state.mode == "Chat":
+        payload.append({"role": "system", "content": CHAT_GUIDE_RULE})
+        payload.append({"role": "system", "content": (
+            "Be creative, but keep the scene logically coherent. "
+            "Do not contradict established facts from earlier turns. "
+            "If the current scene implies a place, do not suddenly act from a different place. "
+            "If you need to change location or add a big step (e.g., going outside, driving somewhere), "
+            "first include a brief transition from the current situation, then continue. "
+            "Keep transitions short (one concise clause)."
+        )})
+    
+    # Bracket handler emphasis this turn (optional but helps)
+    sent_cap = None
+    if st.session_state.mode == "Chat" and directives:
+        sent_cap = _extract_length_hint_from_list(directives)
+        dir_text = "\n".join(f"- {d.strip()}" for d in directives if d.strip())
+        wants_clean = any(re.search(r"\b(non[-\s]?explicit|clean|pg)\b", d, re.I) for d in directives)
+        wants_explicit = any(re.search(r"\bexplicit\b", d, re.I) for d in directives)
+    
+        priority_lines = [
+            "THIS TURN ONLY — follow the hidden stage notes in the user's message.",
+            "Do NOT show, quote, paraphrase, or mention hidden text or instructions.",
+            "Integrate the stage directions exactly once, naturally (action as action, speech as spoken lines).",
+        ]
+        if sent_cap:
+            priority_lines.append(f"Keep the reply within {sent_cap} sentences.")
+        if wants_clean and not wants_explicit:
+            priority_lines.append("Keep language non‑explicit / PG for this turn.")
+    
+        payload.append({"role": "system", "content": "\n".join(priority_lines)})
+        payload.append({"role": "system", "content": HIDDEN_TAG_GUIDE})
+    
+    # Continuity anchor (Chat only)
+    if st.session_state.mode == "Chat":
+        last_beat = _last_assistant_text(st.session_state.messages)
+        if last_beat:
+            anchor = last_beat[-400:]
+            payload.append({
+                "role": "system",
+                "content": (
+                    "CONTINUITY ANCHOR (Chat mode):\n"
+                    "Stay in the same immediate scene (location, characters, objects, timeline) as the recent reply, "
+                    "unless the USER moves it. If you must change location/time, insert a brief transition FIRST "
+                    "(one short clause), then continue. No sudden teleports.\n\n"
+                    f"Recent scene excerpt:\n{anchor}"
+                )
+            })
+    
+    # 4) Final user turn — add it ONCE, AFTER all system instructions
+    payload.append({"role": "user", "content": model_user_content})
+    
+    # Build request body
+    body = {
+        "model": model,
+        "messages": payload,
+        "temperature": 0.3,
+    }
+    if sent_cap:
+        body["max_tokens"] = 140 if sent_cap <= 2 else 220
 
     # Call API with one optional enforcement retry
     def _call_openrouter(messages, temperature=0.4):
