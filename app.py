@@ -24,23 +24,31 @@ _force = st.session_state.pop("_scroll_to_bottom", False)
 components.html(
     f"""
     <script>
-      function scrollToBottomIfNeeded() {{
-        const forceBottom = {str(_force).lower()};
-        if (forceBottom) {{
-          const anchor = document.getElementById("bottom-anchor");
-          if (anchor) {{
-            setTimeout(() => {{
-              anchor.scrollIntoView({{ behavior: "auto", block: "end" }});
-            }}, 100);
-          }}
+      const scrollToBottom = () => {{
+        const anchor = document.getElementById("bottom-anchor");
+        if (anchor) {{
+          anchor.scrollIntoView({{ behavior: "auto", block: "end" }});
         }}
-      }}
+      }};
 
-      window.addEventListener("load", scrollToBottomIfNeeded);
+      const force = {str(_force).lower()};
+
+      if (force) {{
+        // Scroll early
+        scrollToBottom();
+
+        // Scroll again a few times to catch DOM changes
+        let tries = 5;
+        const interval = setInterval(() => {{
+          scrollToBottom();
+          if (--tries <= 0) clearInterval(interval);
+        }}, 150);
+      }}
     </script>
     """,
     height=0,
 )
+
 
 # --- Bracket enforcement helpers ---
 _STOPWORDS = {"the","a","an","and","or","but","if","then","so","to","for","of","in","on","at","with","by","from","as","that","this","these","those","be","is","am","are","was","were","it","you","me","my","your","we","they","he","she","him","her","them","i"}
@@ -832,12 +840,13 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_index = None
                 save_session()
                 st.session_state._scroll_to_bottom = True
+                st.experimental_rerun()
 
         with c2:
             if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
                 st.session_state._scroll_to_bottom = True
-                st.rerun()
+                st.experimental_rerun()
     else:
         st.chat_message(display_role).markdown(msg["content"])
         # 3B — Pin assistant reply to canon
@@ -851,7 +860,7 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = msg.get("raw", msg["content"])
                 st.session_state._scroll_to_bottom = True
-                st.rerun()
+                st.experimental_rerun()
 
 
 # Regenerate using the same user bubble
@@ -864,10 +873,6 @@ if last_user_like_idx is not None and st.session_state.edit_index is None and st
         st.session_state.pending_input = last_msg.get("raw", last_msg["content"])
         st.session_state._scroll_to_bottom = True  
 
-# Invisible anchor at bottom of page to scroll to
-scroll_anchor = '<div id="bottom-anchor"></div>'
-st.markdown(scroll_anchor, unsafe_allow_html=True)
-
 # Input box
 if st.session_state.edit_index is None and st.session_state.pending_input is None:
     prompt = st.chat_input("Say something...")
@@ -875,3 +880,7 @@ if st.session_state.edit_index is None and st.session_state.pending_input is Non
         st.session_state.pending_input = prompt
         st.session_state._scroll_to_bottom = True
         st.rerun()
+
+# Invisible anchor AFTER chat input = real bottom of page
+st.markdown('<div id="bottom-anchor"></div>', unsafe_allow_html=True)
+
