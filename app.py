@@ -135,29 +135,35 @@ THEMES = {
 
     # Light, crisp
     "Eerie Light": {
-        "bg":      "#FAFAFF",
-        "surface": "#F2F4F7",
-        "text":    "#0B1220",
-        "muted":   "#D0D5DD",
-        "accent":  "#3B82F6"   # vivid blue
+        "bg":      "#F7F9FC",
+        "surface": "#FFFFFF",
+        "text":    "#0F172A",
+        "muted":   "#E5E7EB",
+        "accent":  "#2563EB",
+        "bubble_user":     "#F3F4F6",
+        "bubble_assistant":"#EEF2FF"
     },
 
-    # Soft blue-gray
+    # Soft blue‑gray
     "Cadet Blue": {
-        "bg":      "#F9FAFB",
-        "surface": "#E5E7EB",
-        "text":    "#111827",
-        "muted":   "#CBD5E1",
-        "accent":  "#6366F1"   # indigo
+        "bg":      "#F8FAFC",
+        "surface": "#FFFFFF",
+        "text":    "#0B1220",
+        "muted":   "#D1D5DB",
+        "accent":  "#6366F1",
+        "bubble_user":     "#F1F5F9",
+        "bubble_assistant":"#E5E7EB"
     },
 
-    # Teal + warm accent (balanced)
+    # Clean neutral with teal accent
     "Teal Saffron": {
         "bg":      "#FEFEFE",
-        "surface": "#F3F4F6",
-        "text":    "#0F172A",
-        "muted":   "#D1D5DB",
-        "accent":  "#10B981"   # teal (changed from heavy saffron surface)
+        "surface": "#FFFFFF",
+        "text":    "#111827",
+        "muted":   "#E5E7EB",
+        "accent":  "#10B981",
+        "bubble_user":     "#F3F4F6",
+        "bubble_assistant":"#E8FAF3"
     },
 
     # Dark, readable
@@ -166,101 +172,64 @@ THEMES = {
         "surface": "#171C23",
         "text":    "#E6EAF0",
         "muted":   "#2B3440",
-        "accent":  "#EAB308"   # warm gold
+        "accent":  "#EAB308",
+        "bubble_user":     "#1B222C",
+        "bubble_assistant":"#121820"
     },
 }
 
-
 CSS_TEMPLATE = """
 <style>
-:root {
+:root{
   --bg: __BG__;
   --surface: __SURFACE__;
   --text: __TEXT__;
   --muted: __MUTED__;
   --accent: __ACCENT__;
+  --bubble-user: __BUSER__;
+  --bubble-assistant: __BASSIST__;
 }
 
-/* App background + text */
-.stApp, .stApp header, .stApp footer {
-  background: var(--bg) !important;
-  color: var(--text) !important;
-}
-
-/* Sidebar */
+/* App + sidebar */
+.stApp, .stApp header, .stApp footer { background: var(--bg) !important; color: var(--text) !important; }
 section[data-testid="stSidebar"] > div {
-  background: var(--surface) !important;
-  color: var(--text) !important;
-  border-right: 1px solid var(--muted) !important;
+  background: var(--surface) !important; color: var(--text) !important; border-right: 1px solid var(--muted) !important;
 }
 
-/* Chat input */
-.stChatInput textarea {
-  background: var(--surface) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--muted) !important;
-  border-radius: 10px !important;
+/* Inputs */
+.stChatInput textarea{
+  background: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--muted) !important; border-radius: 10px !important;
 }
 
-/* Chat bubbles – give them space + separation */
-div[data-testid="stChatMessage"] {
-  margin-bottom: 10px !important;
+/* Chat bubbles */
+div[data-testid="stChatMessage"]{ margin-bottom: 12px !important; }
+div[data-testid="stChatMessage"][data-testid*="user"] > div,
+div[data-testid="stChatMessage"]:has(> [data-testid="user-avatar"]) > div {
+  background: var(--bubble-user) !important; color: var(--text) !important; border: 1px solid var(--muted) !important; border-radius: 14px !important; box-shadow: 0 1px 2px rgba(0,0,0,.04) !important;
 }
-div[data-testid="stChatMessage"] > div {
-  background: var(--surface) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--muted) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
-  padding: 10px 12px !important;
+div[data-testid="stChatMessage"][data-testid*="assistant"] > div,
+div[data-testid="stChatMessage"]:has(> [data-testid="assistant-avatar"]) > div {
+  background: var(--bubble-assistant) !important; color: var(--text) !important; border: 1px solid var(--muted) !important; border-radius: 14px !important; box-shadow: 0 1px 2px rgba(0,0,0,.05) !important;
 }
 
-/* Make user vs assistant slightly different without fighting Streamlit */
-div[data-testid="stChatMessage"]:has(> [data-testid="stMarkdownContainer"]) {
-  background: transparent !important;
+/* Buttons */
+.stButton button{
+  background: var(--accent) !important; color: #fff !important; border: none !important; border-radius: 8px !important; font-weight: 600 !important;
 }
-div[data-testid="stChatMessage"].st-emotion-cache-1cypcdb, /* assistant (fallback) */
-div[data-testid="stChatMessage"][data-testid="stChatMessage-Assistant"] > div {
-  background: color-mix(in oklab, var(--surface), black 4%) !important;
-}
+.stButton button:hover{ filter: brightness(.95); }
 
-/* Buttons – higher contrast */
-.stButton button {
-  background: var(--accent) !important;
-  color: #FFFFFF !important;            /* <- force readable text */
-  border: none !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-}
-.stButton button:hover { filter: brightness(0.95); }
-
-/* Selects, radio, inputs */
-.stSelectbox div[data-baseweb="select"] > div,
-.stRadio, .stTextInput, .stTextArea, .stNumberInput {
-  color: var(--text) !important;
-}
-
-/* Code blocks + expanders */
-.stCodeBlock, .stExpander {
-  border-color: var(--muted) !important;
-}
-
-/* Alerts / exceptions – readable on all themes */
-.stAlert, .stException {
-  background: var(--surface) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--muted) !important;
-}
-.stAlert *, .stException * {
-  color: var(--text) !important;
-}
+/* Misc */
+.stCodeBlock, .stExpander { border-color: var(--muted) !important; }
+.stAlert, .stException { background: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--muted) !important; }
+.stAlert *, .stException * { color: var(--text) !important; }
 </style>
 """
+
 
 def apply_theme(theme_name: str):
     """Build CSS without f-strings so braces `{}` never crash."""
     if theme_name not in THEMES or THEMES[theme_name] is None:
-        st.session_state["_theme_css"] = ""   # remove overrides
+        st.session_state["_theme_css"] = ""
         return
     p = THEMES[theme_name]
     css = (CSS_TEMPLATE
@@ -268,8 +237,12 @@ def apply_theme(theme_name: str):
            .replace("__SURFACE__", p["surface"])
            .replace("__TEXT__", p["text"])
            .replace("__MUTED__", p["muted"])
-           .replace("__ACCENT__", p["accent"]))
+           .replace("__ACCENT__", p["accent"])
+           .replace("__BUSER__", p.get("bubble_user", p["surface"]))
+           .replace("__BASSIST__", p.get("bubble_assistant", p["surface"]))
+          )
     st.session_state["_theme_css"] = css
+
 
 # ---- THEME INIT (place BELOW apply_theme) ----
 if "theme" not in st.session_state:
