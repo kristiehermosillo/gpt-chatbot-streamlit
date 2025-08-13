@@ -131,35 +131,31 @@ SAVE_PATH = "sessions.json"
 
 # ---- THEME SYSTEM (place ABOVE any calls to apply_theme) ----
 THEMES = {
+    "Default (Streamlit)": None,  # keep this so older sessions don't break
+
     "Eerie Light": {
-        "bg": "#F6F7FA",         # very soft cool white
-        "surface": "#FFFFFF",    # clean white cards/bubbles
-        "text": "#1F2933",       # deep slate for high readability
-        "muted": "#A0AEC0",      # cool gray for secondary text
-        "accent": "#4A90E2"      # calm medium blue
-    },
-    "Cadet Blue": {
-        "bg": "#E8EEF3",         # pale blue-gray background
-        "surface": "#FFFFFF",    # pure white chat bubbles
-        "text": "#1F2933",       # dark slate for clarity
-        "muted": "#94A3B8",      # soft steel gray
-        "accent": "#3B82F6"      # fresh cadet blue
-    },
-    "Teal Saffron": {
-        "bg": "#FAF8F3",         # warm parchment background
-        "surface": "#FFFFFF",    # clean white bubbles
-        "text": "#2D2A26",       # dark espresso text
-        "muted": "#A69B8F",      # warm taupe for secondary text
-        "accent": "#E6A400"      # rich saffron gold
-    },
-    "Licorice Earth": {
-        "bg": "#181A1B",         # deep charcoal background
-        "surface": "#1F2122",    # slightly lighter card background
-        "text": "#EAEAEA",       # soft light gray text
-        "muted": "#A0A0A0",      # muted gray for less important text
-        "accent": "#FFB84C"      # warm amber-gold
-    }
+    "bg": "#F6F7FA", "surface": "#FFFFFF", "text": "#1F2933", "muted": "#A0AEC0", "accent": "#4A90E2",
+    "bubble_user": "#EFF4FF",        # light indigo tint
+    "bubble_assistant": "#F7F7FA"    # neutral light gray
+},
+"Cadet Blue": {
+    "bg": "#E8EEF3", "surface": "#FFFFFF", "text": "#1F2933", "muted": "#94A3B8", "accent": "#3B82F6",
+    "bubble_user": "#ECF2FF",
+    "bubble_assistant": "#F7FAFC"
+},
+"Teal Saffron": {
+    "bg": "#FAF8F3", "surface": "#FFFFFF", "text": "#2D2A26", "muted": "#A69B8F", "accent": "#E6A400",
+    "bubble_user": "#FFF7E6",        # soft warm
+    "bubble_assistant": "#FDFCF8"
+},
+"Licorice Earth": {
+    "bg": "#181A1B", "surface": "#1F2122", "text": "#EAEAEA", "muted": "#A0A0A0", "accent": "#FFB84C",
+    "bubble_user": "#26292B",
+    "bubble_assistant": "#1F2325"
+},
+
 }
+
 
 CSS_TEMPLATE = """
 <style>
@@ -229,10 +225,16 @@ def apply_theme(theme_name: str):
 
 # ---- THEME INIT (place BELOW apply_theme) ----
 if "theme" not in st.session_state:
-    st.session_state.theme = "Default (Streamlit)"
+    st.session_state.theme = "Default (Streamlit)”
+
+# If the saved theme is missing/renamed, fall back safely
+if st.session_state.theme not in THEMES:
+    st.session_state.theme = next(iter(THEMES))  # first key in THEMES
+
 apply_theme(st.session_state.theme)
 if st.session_state.get("_theme_css"):
     st.markdown(st.session_state["_theme_css"], unsafe_allow_html=True)
+
 
 # ---------------- Base prompts (Story vs Chat) ----------------
 STORY_BASE = {
@@ -464,10 +466,16 @@ if st.sidebar.button("+ New Chat"):
 with st.sidebar.expander("🎨 Theme"):
     if "theme" not in st.session_state:
         st.session_state.theme = "Default (Streamlit)"
+    theme_keys = list(THEMES.keys())
+    try:
+        idx = theme_keys.index(st.session_state.theme)
+    except ValueError:
+        idx = 0
+    
     theme_choice = st.selectbox(
         "Choose a color palette",
-        list(THEMES.keys()),
-        index=list(THEMES.keys()).index(st.session_state.theme),
+        theme_keys,
+        index=idx,
         help="Applies only to this app; overrides Streamlit theme while active."
     )
     if theme_choice != st.session_state.theme:
