@@ -873,12 +873,12 @@ for i, msg in enumerate(st.session_state.messages):
 
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
-            st.session_state.edit_index = i
-            # prefill the text area by setting its keyed state, not by passing a value
-            st.session_state[f"edit_{i}"] = msg.get("raw", msg["content"])
-            st.session_state.edit_text = msg.get("raw", msg["content"])
-            st.session_state._scroll_target = f"edit-{i}"
-            st.rerun()
+                st.session_state.edit_index = i
+                # prefill the text area by setting its keyed state, not by passing a value
+                st.session_state[f"edit_{i}"] = msg.get("raw", msg["content"])
+                st.session_state.edit_text = msg.get("raw", msg["content"])
+                st.session_state._scroll_target = f"edit-{i}"
+                st.rerun()
 
 # Regenerate using the same user bubble
 if last_user_like_idx is not None and st.session_state.edit_index is None and st.session_state.pending_input is None:
