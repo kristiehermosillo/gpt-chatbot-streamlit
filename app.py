@@ -27,7 +27,7 @@ components.html(
       window.addEventListener('load', () => {{
         const forceBottom = {str(_force).lower()};
         if (forceBottom) {{
-          // scroll after the DOM is painted
+          try {{ sessionStorage.setItem("scroll-y", "9999999"); }} catch(e) {{}}
           setTimeout(() => {{
             window.scrollTo(0, document.body.scrollHeight);
           }}, 0);
@@ -37,6 +37,7 @@ components.html(
     """,
     height=0,
 )
+
 
 # --- Bracket enforcement helpers ---
 _STOPWORDS = {"the","a","an","and","or","but","if","then","so","to","for","of","in","on","at","with","by","from","as","that","this","these","those","be","is","am","are","was","were","it","you","me","my","your","we","they","he","she","him","her","them","i"}
@@ -142,6 +143,35 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# --- Sticky scroll across reruns (prevents jumping to top) ---
+components.html(
+    """
+    <script>
+      (function() {
+        const save = () => {
+          try { sessionStorage.setItem("scroll-y", String(window.scrollY || 0)); } catch(e) {}
+        };
+        window.addEventListener("scroll", save, { passive: true });
+        window.addEventListener("beforeunload", save);
+
+        window.addEventListener("load", () => {
+          let tries = 30;
+          const saved = sessionStorage.getItem("scroll-y");
+          if (saved !== null) {
+            const targetY = parseInt(saved, 10) || 0;
+            const id = setInterval(() => {
+              window.scrollTo(0, targetY);
+              if (--tries <= 0) clearInterval(id);
+            }, 50);
+          }
+        });
+      })();
+    </script>
+    """,
+    height=0,
+)
+
 # Ensure 'canon' exists early so any UI can use it safely
 if "canon" not in st.session_state or not isinstance(st.session_state.canon, list):
     st.session_state.canon = []
@@ -848,12 +878,10 @@ for i, msg in enumerate(st.session_state.messages):
                 st.session_state.edit_index = None
                 save_session()
                 st.session_state._scroll_to_bottom = True
-                st.rerun()
 
         with c2:
             if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
-                st.rerun()
     else:
         st.chat_message(display_role).markdown(msg["content"])
         # 3B — Pin assistant reply to canon
@@ -861,13 +889,11 @@ for i, msg in enumerate(st.session_state.messages):
             if st.button("📌 Pin this to canon", key=f"pin_{i}"):
                 pin_to_canon_safe(msg.get("content", ""))
                 save_session()
-                st.rerun()
 
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = msg.get("raw", msg["content"])
-                st.rerun()
 
 # Regenerate using the same user bubble
 if last_user_like_idx is not None and st.session_state.edit_index is None and st.session_state.pending_input is None:
@@ -878,7 +904,6 @@ if last_user_like_idx is not None and st.session_state.edit_index is None and st
         last_msg = st.session_state.messages[last_user_like_idx]
         st.session_state.pending_input = last_msg.get("raw", last_msg["content"])
         st.session_state._scroll_to_bottom = True  
-        st.rerun()
 
 # Input box
 if st.session_state.edit_index is None and st.session_state.pending_input is None:
