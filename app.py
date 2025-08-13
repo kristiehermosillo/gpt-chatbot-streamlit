@@ -820,10 +820,14 @@ if st.session_state.pending_input is not None:
             st.write("Last error:")
             st.code(st.session_state.last_error)
 
-
-# ===================== START REPLACE FROM HERE =====================
-
 # ---------------- Render ----------------
+# Prefill for Edit before any widgets render
+_pf = st.session_state.pop("_prefill", None)
+if _pf:
+    _i = _pf["i"]
+    _txt = _pf["text"]
+    st.session_state[f"edit_{_i}"] = _txt
+    st.session_state.edit_text = _txt
 
 # Prefill edit buffer before any widgets render
 if st.session_state.get("edit_index") is not None:
@@ -889,6 +893,7 @@ for i, msg in enumerate(st.session_state.messages):
 
         if editable and i == last_user_like_idx and st.session_state.edit_index is None:
             if st.button("✏️ Edit", key=f"edit_{i}"):
+                st.session_state._prefill = {"i": i, "text": msg.get("raw", msg["content"])}
                 st.session_state.edit_index = i
                 st.session_state._scroll_target = f"edit-{i}"
                 st.rerun()
