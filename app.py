@@ -109,27 +109,6 @@ def extract_stage_directions(text: str):
     return clean, notes
 
 # ---------------- UI helpers ----------------
-components.html(
-    """
-    <script>
-    document.addEventListener("scroll", () => {
-        sessionStorage.setItem("scroll-y", window.scrollY);
-    });
-    window.addEventListener("load", () => {
-        const savedY = sessionStorage.getItem("scroll-y");
-        if (savedY !== null) {
-            const observer = new MutationObserver((mut, obs) => {
-                window.scrollTo(0, parseInt(savedY));
-                obs.disconnect();
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
-    });
-    </script>
-    """,
-    height=0,
-)
-
 st.set_page_config(page_title="GPT Chatbot (DeepSeek)", page_icon="🤖")
 st.markdown(
     """
@@ -882,6 +861,8 @@ for i, msg in enumerate(st.session_state.messages):
         with c2:
             if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
+                st.session_state._scroll_to_bottom = True
+                st.rerun()
     else:
         st.chat_message(display_role).markdown(msg["content"])
         # 3B — Pin assistant reply to canon
@@ -894,6 +875,9 @@ for i, msg in enumerate(st.session_state.messages):
             if st.button("✏️ Edit", key=f"edit_{i}"):
                 st.session_state.edit_index = i
                 st.session_state.edit_text = msg.get("raw", msg["content"])
+                st.session_state._scroll_to_bottom = True
+                st.rerun()
+
 
 # Regenerate using the same user bubble
 if last_user_like_idx is not None and st.session_state.edit_index is None and st.session_state.pending_input is None:
