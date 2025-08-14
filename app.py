@@ -664,16 +664,21 @@ if st.session_state.pending_input is not None:
             })
     
     # Mode rules
-    if st.session_state.mode == "Story" and not directives:
+    if st.session_state.mode == "Story":
         payload.append({
             "role": "system",
             "content": (
-                "Take the user's prompt as the next line in a story. "
-                "Keep all original meaning and continuity intact. "
-                "Enhance with vivid imagery and emotion. "
-                "Build from exactly what was written."
+                "Use the user's text as the basis for this turn's narration. "
+                "Preserve every action, fact, and intent exactly as written by the user. "
+                "Rewrite and expand it in place with vivid sensory detail and atmosphere. "
+                "Do not advance time or add new plot events beyond what the user line already implies. "
+                "Do not treat the user as a chat partner. No meta commentary. "
+                "Keep tense, person, and point of view consistent with the user's line. "
+                "Only after richly rendering the same moment may you complete the immediate beat already implied, "
+                "but stay inside the same moment unless the user explicitly moves the scene forward."
             )
         })
+
     if st.session_state.mode == "Chat":
         payload.append({"role": "system", "content": CHAT_GUIDE_RULE})
         payload.append({"role": "system", "content": (
