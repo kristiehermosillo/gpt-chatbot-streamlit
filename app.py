@@ -603,12 +603,19 @@ if st.session_state.pending_input is not None:
     
 # --- Build payload for the model ---
 
-    # Build the user message for the model (prepend hidden directions in Chat mode)
-    if st.session_state.mode == "Chat" and directives:
-        hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
-        model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
-    else:
-        model_user_content = cleaned_prompt or "(no explicit user text this turn)"
+    # Build the user message for the model
+if st.session_state.mode == "Chat" and directives:
+    hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
+    model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
+elif st.session_state.mode == "Story":
+    # Story-only: expand the user beat in place (no time skips)
+    model_user_content = (
+        "Expand the following beat in place. Preserve all actions and facts exactly as written. "
+        "Add rich sensory detail and atmosphere. Do NOT advance time or add new plot events.\n\n"
+        f"BEAT: {cleaned_prompt or '(no explicit user text this turn)'}"
+    )
+else:
+    model_user_content = cleaned_prompt or "(no explicit user text this turn)"
     
     # Build a fresh payload from scratch:
     payload = []
@@ -677,6 +684,10 @@ if st.session_state.pending_input is not None:
                 "Only after richly rendering the same moment may you complete the immediate beat already implied, "
                 "but stay inside the same moment unless the user explicitly moves the scene forward."
             )
+        })
+        payload.append({
+            "role": "system",
+            "content": "Story-only clamp: stay inside the same moment the user wrote. No time skips. No new events beyond what the line implies."
         })
 
     if st.session_state.mode == "Chat":
