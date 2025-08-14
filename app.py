@@ -916,6 +916,33 @@ if st.session_state.edit_index is None and st.session_state.pending_input is Non
         st.session_state.pending_input = prompt
         st.session_state._scroll_target = "bottom-anchor"
         st.rerun()
+        
+# While editing, force scroll to the edit box after it exists
+if st.session_state.get("edit_index") is not None:
+    _i = st.session_state.edit_index
+    st.components.v1.html(
+        f"""
+        <script>
+          const id = "edit-{_i}";
+          function jump() {{
+            try {{
+              const doc = window.parent && window.parent.document ? window.parent.document : document;
+              const el = doc.getElementById(id);
+              if (el) {{
+                el.scrollIntoView({{ block: "center" }});
+                return true;
+              }}
+            }} catch(e) {{}}
+            return false;
+          }}
+          let tries = 14;
+          const t = setInterval(() => {{
+            if (jump() || --tries <= 0) clearInterval(t);
+          }}, 120);
+        </script>
+        """,
+        height=0,
+    )
 
 # Invisible anchor at the very bottom of the page
 st.markdown('<div id="bottom-anchor"></div>', unsafe_allow_html=True)
