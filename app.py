@@ -612,7 +612,7 @@ elif st.session_state.mode == "Story":
     model_user_content = (
         "Expand the following beat in place. Preserve all actions and facts exactly as written. "
         "Add rich sensory detail and atmosphere. Do NOT advance time or add new plot events.\n\n"
-        f"BEAT: {cleaned_prompt or '(no explicit user text this turn)'}"
+        f"BEAT: {prompt or '(no explicit user text this turn)'}"
     )
 else:
     model_user_content = cleaned_prompt or "(no explicit user text this turn)"
