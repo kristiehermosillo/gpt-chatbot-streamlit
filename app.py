@@ -806,7 +806,7 @@ if st.session_state.pending_input is not None:
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 save_session()
                 st.session_state.just_responded = True
-                st.session_state._scroll_to_bottom = True   
+                st.session_state._scroll_target = "bottom-anchor"
                 st.rerun()
     
     except Exception as e:
