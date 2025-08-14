@@ -863,12 +863,62 @@ for i, msg in enumerate(st.session_state.messages):
 
     if editable and st.session_state.edit_index == i:
         st.markdown(f'<div id="edit-{i}"></div>', unsafe_allow_html=True)
+    
+        # the edit text area, note there is no value argument, key only
         st.session_state.edit_text = st.text_area("✏️ Edit message", key=f"edit_{i}")
-
+    
+        # force scroll to the live edit box from right here using a MutationObserver
+        _scroll_fix = st.empty()
+        _scroll_fix.components.v1.html(
+            f"""
+            <script>
+              const id = "edit-{i}";
+    
+              // turn off smooth scrolling so the jump is instant
+              try {{
+                const d = window.parent && window.parent.document ? window.parent.document : document;
+                d.documentElement.style.scrollBehavior = "auto";
+                d.body.style.scrollBehavior = "auto";
+              }} catch(e) {{}}
+    
+              function jumpNow() {{
+                try {{
+                  const doc = window.parent && window.parent.document ? window.parent.document : document;
+                  const el = doc.getElementById(id);
+                  if (el) {{
+                    el.scrollIntoView({{ block: "center" }});
+                    return true;
+                  }}
+                }} catch(e) {{}}
+                return false;
+              }}
+    
+              // try right away
+              if (!jumpNow()) {{
+                // if not ready, observe for layout changes, then jump once
+                const doc = window.parent && window.parent.document ? window.parent.document : document;
+                const obs = new MutationObserver(() => {{
+                  if (jumpNow()) {{
+                    obs.disconnect();
+                  }}
+                }});
+                obs.observe(doc, {{ childList: true, subtree: true }});
+    
+                // extra safety attempts
+                let tries = 30;
+                const t = setInterval(() => {{
+                  if (jumpNow() || --tries <= 0) clearInterval(t);
+                }}, 50);
+              }}
+            </script>
+            """,
+            height=0,
+        )
+    
         c1, c2 = st.columns([1, 1])
         with c1:
             if st.button("↩️ Resend", key=f"resend_{i}"):
-                # reuse the same bubble; pending handler will sanitize and store raw/clean
+                # reuse the same bubble, pending handler will sanitize and store raw and clean
                 st.session_state.messages = st.session_state.messages[:i+1]
                 st.session_state.regen_from_idx = i
                 st.session_state.pending_input = st.session_state.edit_text
@@ -876,7 +926,7 @@ for i, msg in enumerate(st.session_state.messages):
                 save_session()
                 st.session_state._scroll_target = "bottom-anchor"
                 st.rerun()
-
+    
         with c2:
             if st.button("❌ Cancel", key=f"cancel_{i}"):
                 st.session_state.edit_index = None
