@@ -608,14 +608,20 @@ if st.session_state.pending_input is not None:
         hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
         model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
     elif st.session_state.mode == "Story":
-        # Story-only: render the line in place, then ADD 2–4 concrete follow-up beats (action/dialogue) that push the scene forward
+        # Story-only: DO NOT echo the user's words. Treat them as an outline, then write fresh prose with added beats.
         model_user_content = (
-            "Start by rendering the user's line in place, preserving its actions, POV, tense, and tone. "
-            "Then extend the same scene with 2–4 additional, concrete beats (action and/or dialogue) that logically follow. "
-            "Prioritize plot movement and character interaction over setting description. "
-            "Avoid repeating unchanged setting/sensory details; only describe new or changing elements.\n\n"
-            f"LINE: {cleaned_prompt or '(no explicit user text this turn)'}"
+            "You are continuing a single ongoing scene. "
+            "Do NOT quote, mirror, or closely paraphrase the user's sentences. "
+            "First (silently): reduce the user's text to a one-line internal plan of key beats (do not show the plan). "
+            "Then write 3–6 short paragraphs of ORIGINAL prose that follows those beats, adding plausible connective tissue, "
+            "fresh wording, concrete micro-actions, and dialogue. "
+            "Preserve POV, tense, tone, and established continuity (location, characters, ongoing actions). "
+            "Advance the immediate beat without large time jumps. "
+            "Avoid repeating unchanged setting/sensory details; only add them if something changes or they heighten the moment. "
+            "Absolutely avoid sentence-by-sentence paraphrase; do not reuse more than 4 consecutive words from the user's text.\n\n"
+            f"OUTLINE SOURCE:\n{cleaned_prompt or '(no explicit user text this turn)'}"
         )
+
     else:
         model_user_content = cleaned_prompt or "(no explicit user text this turn)"
 
@@ -680,13 +686,13 @@ if st.session_state.pending_input is not None:
             "role": "system",
             "content": (
                 "STORY MODE RULES: Continue directly from the user's text as part of the SAME scene. "
-                "Preserve actions, facts, POV, tense, and tone exactly as written. "
-                "You may elaborate with creative details that FIT the established setting, characters, and tone, "
-                "but do not re-describe the location or sensory details unless something has CHANGED. "
-                "Favor pace and clarity over purple prose. "
-                "If the user's line is mid-action, stay in that flow without time skips. "
-                "Add a few logically connected beats of action or dialogue to advance the scene. "
-                "Do not treat the user as a chat partner—write pure narrative."
+                "Maintain POV, tense, tone, and all established continuity (characters, location, ongoing actions). "
+                "Write ORIGINAL prose; do not echo or closely paraphrase the user's wording. "
+                "Favor plot movement, character interaction, and specific micro-actions over static description. "
+                "Only add setting/sensory detail if it changes or meaningfully heightens the beat; avoid purple prose. "
+                "Extend the scene with several logically connected beats (action and/or dialogue). "
+                "No large time jumps unless the user signals one; if you must move, use a brief, smooth transition first. "
+                "Do not address the user; produce pure narrative."
             )
         })
     
@@ -761,8 +767,8 @@ if st.session_state.pending_input is not None:
     payload.append({"role": "user", "content": model_user_content})
 
     # Choose temp and token limit for Story mode
-    temp = 0.35 if st.session_state.mode == "Story" else 0.3
-    story_max = 700 if st.session_state.mode == "Story" else None
+    temp = 0.40 if st.session_state.mode == "Story" else 0.3
+    story_max = 900 if st.session_state.mode == "Story" else None
 
     # Build request body
     body = {
