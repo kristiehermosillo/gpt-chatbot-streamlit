@@ -608,14 +608,14 @@ if st.session_state.pending_input is not None:
         hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
         model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
     elif st.session_state.mode == "Story":
-        # Story-only: begin by rendering the user's line in place; then continue the immediate beat (no big time jumps)
+        # Story-only: render the line in place, then ADD 2–4 concrete follow-up beats (action/dialogue) that push the scene forward
         model_user_content = (
-            "Begin by rendering the user's line in place, preserving its actions, POV, tense, and tone. "
-            "Continue the immediate beat naturally if appropriate, but do not make large time jumps or introduce unrelated events. "
-            "Do not re-describe unchanged setting/sensory details.\n\n"
+            "Start by rendering the user's line in place, preserving its actions, POV, tense, and tone. "
+            "Then extend the same scene with 2–4 additional, concrete beats (action and/or dialogue) that logically follow. "
+            "Prioritize plot movement and character interaction over setting description. "
+            "Avoid repeating unchanged setting/sensory details; only describe new or changing elements.\n\n"
             f"LINE: {cleaned_prompt or '(no explicit user text this turn)'}"
         )
-
     else:
         model_user_content = cleaned_prompt or "(no explicit user text this turn)"
 
@@ -680,15 +680,17 @@ if st.session_state.pending_input is not None:
             "role": "system",
             "content": (
                 "STORY MODE RULES: Continue directly from the user's text as part of the SAME scene. "
-                "Preserve all actions, facts, POV, tense, and tone exactly as written. "
+                "Preserve actions, facts, POV, tense, and tone exactly as written. "
                 "You may elaborate with creative details that FIT the established setting, characters, and tone, "
-                "but do not reset or re-describe the location or sensory details unless something has CHANGED. "
+                "but do not re-describe the location or sensory details unless something has CHANGED. "
                 "Favor pace and clarity over purple prose. "
                 "If the user's line is mid-action, stay in that flow without time skips. "
+                "Add a few logically connected beats of action or dialogue to advance the scene. "
                 "Do not treat the user as a chat partner—write pure narrative."
             )
         })
-        # Continuity anchor (Story only)
+    
+        # Continuity anchor (Story only) — helps it remember where we are
         last_beat = _last_assistant_text(st.session_state.messages)
         if last_beat:
             anchor = last_beat[-400:]
@@ -697,7 +699,7 @@ if st.session_state.pending_input is not None:
                 "content": (
                     "STORY CONTINUITY ANCHOR: Keep characters, location, and ongoing actions consistent with the recent beat "
                     "(unless the USER moves it). If you must move or time-shift, insert a brief, smooth transition FIRST, "
-                    "then continue. Avoid repeating unchanged setting/sensory details. "
+                    "then continue. Avoid repeating unchanged setting/sensory details."
                     f"\n\nRecent scene excerpt:\n{anchor}"
                 )
             })
@@ -757,7 +759,11 @@ if st.session_state.pending_input is not None:
     
     # 4) Final user turn — add it ONCE, AFTER all system instructions
     payload.append({"role": "user", "content": model_user_content})
-    
+
+    # Choose temp and token limit for Story mode
+    temp = 0.35 if st.session_state.mode == "Story" else 0.3
+    story_max = 700 if st.session_state.mode == "Story" else None
+
     # Build request body
     body = {
         "model": model,
@@ -772,14 +778,18 @@ if st.session_state.pending_input is not None:
     st.session_state.pop("last_error", None)  # clear old error
     
     # Call API with one optional enforcement retry
-    def _call_openrouter(messages, temperature=0.4):
+    def _call_openrouter(messages, temperature=0.4, max_tokens=None):
         body_local = {
             "model": model,
             "messages": messages,
             "temperature": temperature,
         }
+    
         if sent_cap:
             body_local["max_tokens"] = 140 if sent_cap <= 2 else 220
+        elif max_tokens:
+            body_local["max_tokens"] = max_tokens
+    
         resp = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
@@ -791,11 +801,12 @@ if st.session_state.pending_input is not None:
             timeout=60,
         )
         return resp
+
     
     try:
         with st.spinner("Writing..."):
             # First attempt
-            resp = _call_openrouter(payload, temperature=0.4)
+            resp = _call_openrouter(payload, temperature=temp, max_tokens=story_max)
     
             if resp.status_code != 200:
                 msg = f"API Error {resp.status_code}: {resp.text}"
