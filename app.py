@@ -608,12 +608,14 @@ if st.session_state.pending_input is not None:
         hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
         model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
     elif st.session_state.mode == "Story":
-        # Story-only: expand the user beat in place (no time skips)
+        # Story-only: begin by rendering the user's line in place; then continue the immediate beat (no big time jumps)
         model_user_content = (
-            "Expand the following beat in place. Preserve all actions and facts exactly as written. "
-            "Add rich sensory detail and atmosphere. Do NOT advance time or add new plot events.\n\n"
-            f"BEAT: {cleaned_prompt or '(no explicit user text this turn)'}"
+            "Begin by rendering the user's line in place, preserving its actions, POV, tense, and tone. "
+            "Continue the immediate beat naturally if appropriate, but do not make large time jumps or introduce unrelated events. "
+            "Do not re-describe unchanged setting/sensory details.\n\n"
+            f"LINE: {cleaned_prompt or '(no explicit user text this turn)'}"
         )
+
     else:
         model_user_content = cleaned_prompt or "(no explicit user text this turn)"
 
@@ -673,18 +675,33 @@ if st.session_state.pending_input is not None:
     
     # Mode rules
     if st.session_state.mode == "Story":
+        # Keep context, avoid repetitive scenery/smell, allow creative but fitting details
         payload.append({
             "role": "system",
             "content": (
-                "STORY MODE RULES: Continue the narrative from the user's last line while preserving established "
-                "characters, location, and ongoing events. Maintain the same tense, point of view, and tone. "
-                "Do not repeat detailed descriptions of a location, person, or object unless something about them changes. "
-                "Focus on moving the scene forward naturally from the user's input, keeping continuity with prior context. "
-                "Enhance with sensory or atmospheric details only when relevant and varied; avoid forced or repetitive "
-                "references to smell, scenery, or unrelated mood if they add nothing new. "
-                "If the user’s line implies movement or transition, describe it smoothly without skipping important beats."
+                "STORY MODE RULES: Continue directly from the user's text as part of the SAME scene. "
+                "Preserve all actions, facts, POV, tense, and tone exactly as written. "
+                "You may elaborate with creative details that FIT the established setting, characters, and tone, "
+                "but do not reset or re-describe the location or sensory details unless something has CHANGED. "
+                "Favor pace and clarity over purple prose. "
+                "If the user's line is mid-action, stay in that flow without time skips. "
+                "Do not treat the user as a chat partner—write pure narrative."
             )
         })
+        # Continuity anchor (Story only)
+        last_beat = _last_assistant_text(st.session_state.messages)
+        if last_beat:
+            anchor = last_beat[-400:]
+            payload.append({
+                "role": "system",
+                "content": (
+                    "STORY CONTINUITY ANCHOR: Keep characters, location, and ongoing actions consistent with the recent beat "
+                    "(unless the USER moves it). If you must move or time-shift, insert a brief, smooth transition FIRST, "
+                    "then continue. Avoid repeating unchanged setting/sensory details. "
+                    f"\n\nRecent scene excerpt:\n{anchor}"
+                )
+            })
+
         payload.append({
             "role": "system",
             "content": "Story-only clamp: stay inside the same moment the user wrote. No time skips. No new events beyond what the line implies."
