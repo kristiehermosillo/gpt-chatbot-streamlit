@@ -681,18 +681,18 @@ if st.session_state.pending_input is not None:
     
     # Mode rules
     if st.session_state.mode == "Story":
-        # Keep context, avoid repetitive scenery/smell, allow creative but fitting details
         payload.append({
             "role": "system",
             "content": (
-                "STORY MODE RULES: Continue directly from the user's text as part of the SAME scene. "
-                "Maintain POV, tense, tone, and all established continuity (characters, location, ongoing actions). "
-                "Write ORIGINAL prose; do not echo or closely paraphrase the user's wording. "
-                "Favor plot movement, character interaction, and specific micro-actions over static description. "
-                "Only add setting/sensory detail if it changes or meaningfully heightens the beat; avoid purple prose. "
-                "Extend the scene with several logically connected beats (action and/or dialogue). "
-                "No large time jumps unless the user signals one; if you must move, use a brief, smooth transition first. "
-                "Do not address the user; produce pure narrative."
+                "Treat the user's text as a blueprint for the next beat of the story. "
+                "Do not copy the text directly — instead, rewrite and expand it into immersive, vivid prose. "
+                "Preserve all intended actions, emotions, and facts, but flesh them out with creative detail, atmosphere, and natural dialogue. "
+                "If the user refers vaguely to speech (e.g., 'he says something about…'), invent fitting in-character dialogue. "
+                "If the user summarizes actions (e.g., 'she fights back'), fully describe how it happens. "
+                "Take creative liberties to enhance the scene, as long as they remain true to tone, context, and continuity. "
+                "Do not break immersion or treat the user as a chat partner — remain in the fictional world. "
+                "Ensure smooth transitions between moments, and keep existing setting details consistent. "
+                "Write at a length and richness similar to a published novel scene."
             )
         })
     
