@@ -676,14 +676,13 @@ if st.session_state.pending_input is not None:
         payload.append({
             "role": "system",
             "content": (
-                "Use the user's text as the basis for this turn's narration. "
-                "Preserve every action, fact, and intent exactly as written by the user. "
-                "Rewrite and expand it in place with vivid sensory detail and atmosphere. "
-                "Do not advance time or add new plot events beyond what the user line already implies. "
-                "Do not treat the user as a chat partner. No meta commentary. "
-                "Keep tense, person, and point of view consistent with the user's line. "
-                "Only after richly rendering the same moment may you complete the immediate beat already implied, "
-                "but stay inside the same moment unless the user explicitly moves the scene forward."
+                "STORY MODE RULES: Continue the narrative from the user's last line while preserving established "
+                "characters, location, and ongoing events. Maintain the same tense, point of view, and tone. "
+                "Do not repeat detailed descriptions of a location, person, or object unless something about them changes. "
+                "Focus on moving the scene forward naturally from the user's input, keeping continuity with prior context. "
+                "Enhance with sensory or atmospheric details only when relevant and varied; avoid forced or repetitive "
+                "references to smell, scenery, or unrelated mood if they add nothing new. "
+                "If the user’s line implies movement or transition, describe it smoothly without skipping important beats."
             )
         })
         payload.append({
