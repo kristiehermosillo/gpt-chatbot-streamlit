@@ -615,12 +615,15 @@ if st.session_state.pending_input is not None:
             "First (silently): reduce the user's text to a one-line internal plan of key beats (do not show the plan). "
             "Then write 3–6 short paragraphs of ORIGINAL prose that follows those beats, adding plausible connective tissue, "
             "fresh wording, concrete micro-actions, and dialogue. "
+            "You MUST incorporate **every element** the user provides—no beats, dialogue cues, or emotional notes may be skipped or ignored. "  # NEW
+            "If the user shorthand-hints at speech (e.g., 'he says something about…'), you must generate full dialogue. "  # NEW
             "Preserve POV, tense, tone, and established continuity (location, characters, ongoing actions). "
             "Advance the immediate beat without large time jumps. "
             "Avoid repeating unchanged setting/sensory details; only add them if something changes or they heighten the moment. "
             "Absolutely avoid sentence-by-sentence paraphrase; do not reuse more than 4 consecutive words from the user's text.\n\n"
             f"OUTLINE SOURCE:\n{cleaned_prompt or '(no explicit user text this turn)'}"
         )
+
 
     else:
         model_user_content = cleaned_prompt or "(no explicit user text this turn)"
