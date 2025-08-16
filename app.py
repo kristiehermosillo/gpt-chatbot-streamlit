@@ -358,6 +358,10 @@ else:
     st.sidebar.write("No chats available yet.")
 
 if session_names and selected != st.session_state.active_session:
+    # ✅ Save the current chat before switching
+    save_session()
+
+    # Now switch
     st.session_state.active_session = selected
     rec = st.session_state.sessions[selected]
     st.session_state.messages = rec["messages"].copy()
@@ -367,21 +371,36 @@ if session_names and selected != st.session_state.active_session:
     st.rerun()
 
 if st.sidebar.button("+ New Chat"):
-    new_name = f"Chat {len(st.session_state.sessions) + 1}"
+    # ✅ Save the current chat first so nothing gets overwritten
+    save_session()
+
+    # Pick a unique name robustly (even if chats were deleted)
+    n = len(st.session_state.sessions) + 1
+    new_name = f"Chat {n}"
+    while new_name in st.session_state.sessions:
+        n += 1
+        new_name = f"Chat {n}"
+
     base = _base_for(st.session_state.get("mode", "Chat"))
+
     st.session_state.sessions[new_name] = {
-        "messages": [base],
+        "messages": [base],  # fresh history
         "persona": {"who": "", "role": "", "themes": "", "boundaries": ""},
         "canon": [],
     }
+
+    # Switch to the new chat and hydrate clean working copies
     st.session_state.active_session = new_name
     rec = st.session_state.sessions[new_name]
     st.session_state.messages = rec["messages"].copy()
     st.session_state.persona = dict(rec["persona"])
     st.session_state.canon = list(rec["canon"])
     st.session_state.edit_index = None
+
+    # Persist to disk, then rerun
     save_session()
     st.rerun()
+
 
 with st.sidebar.expander("✏️ Rename Current Chat"):
     new_name = st.text_input("Rename to:", value=st.session_state.active_session, key="rename_input")
