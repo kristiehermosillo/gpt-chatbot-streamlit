@@ -700,7 +700,27 @@ if st.session_state.pending_input is not None:
                 "role": "system",
                 "content": "CHAT MODE PERSISTENT PERSONA (do not state this aloud; just follow):\n" + "\n".join(persona_bits)
             })
-    
+        # Hard persona enforcement (addressing / honorifics)
+        pwho = (p.get("who") or "").lower()
+        if any(w in pwho for w in ["female", "woman", "girl", "she/her", "she / her", "she, her"]):
+            payload.append({
+                "role": "system",
+                "content": (
+                    "Address the user with feminine terms (she/her). "
+                    "Never use masculine terms like 'boy', 'man', 'sir', or 'good boy'. "
+                    "If prior context used them, correct silently and proceed."
+                )
+            })
+        elif any(w in pwho for w in ["male", "man", "boy", "he/him", "he / him", "he, him"]):
+            payload.append({
+                "role": "system",
+                "content": (
+                    "Address the user with masculine terms (he/him). "
+                    "Never use feminine terms like 'girl', 'ma'am', or 'good girl'. "
+                    "If prior context used them, correct silently and proceed."
+                )
+            })
+
     # Mode rules
     if st.session_state.mode == "Story":
         payload.append({
