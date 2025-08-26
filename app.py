@@ -655,18 +655,23 @@ if st.session_state.pending_input is not None:
     payload.append(_base_for(st.session_state.get("mode", "Chat")))
     
     # 2) Include prior conversation history BUT:
-    #    - Convert earlier user_ui bubbles to plain user (cleaned of brackets)
-    #    - SKIP any prior system messages (we control system messages freshly each turn)
-    msgs = st.session_state.messages
+    # --- cap history to avoid context overflow ---
+    # We re-add a fresh base system every turn, so trimming old messages is safe.
+    MAX_EXCHANGES = 28  # ~28 assistant+user replies is plenty; raise/lower as you like
+    
+    # Drop prior system messages (we'll re-add fresh system prompts below)
+    non_system = [m for m in st.session_state.messages if m.get("role") != "system"]
+    
+    # Keep only the tail: last N exchanges (~2 messages per exchange)
+    trimmed = non_system[-(MAX_EXCHANGES * 2 + 2):]
+    
+    msgs = trimmed
     last_idx = len(msgs) - 1
+    
     for i, m in enumerate(msgs):
         role = m.get("role")
     
-        # Skip prior system messages entirely to avoid conflicting/old rules
-        if role == "system":
-            continue
-    
-        # Skip the just-entered user turn; we will add it at the end WITH <hidden>
+        # Skip the just-entered user turn; we add it once at the end as `model_user_content`
         if i == last_idx and role == "user_ui":
             continue
     
@@ -677,6 +682,7 @@ if st.session_state.pending_input is not None:
             })
         else:
             payload.append(m)
+
     
     # 3) Append current per-turn system helpers (BEFORE the final user turn)
     
@@ -809,8 +815,8 @@ if st.session_state.pending_input is not None:
     payload.append({"role": "user", "content": model_user_content})
 
     # Choose temp and token limit for Story mode
-    temp = 0.40 if st.session_state.mode == "Story" else 0.3
-    story_max = 900 if st.session_state.mode == "Story" else None
+    temp = 0.45 if st.session_state.mode == "Story" else 0.3
+    story_max = 1400 if st.session_state.mode == "Story" else None
 
     # Build request body
     body = {
