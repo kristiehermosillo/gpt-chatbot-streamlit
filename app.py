@@ -630,8 +630,6 @@ if st.session_state.pending_input is not None:
         # Story-only: DO NOT echo the user's words. Treat them as an outline, then write fresh prose with added beats.
         model_user_content = (
             "You are continuing a single ongoing scene. "
-            "Do NOT quote, mirror, or closely paraphrase the user's sentences. "
-            "First (silently): reduce the user's text to a one-line internal plan of key beats (do not show the plan). "
             "Then write 3–6 short paragraphs of ORIGINAL prose that follows those beats, adding plausible connective tissue, "
             "fresh wording, concrete micro-actions, and dialogue. "
             "You MUST incorporate **every element** the user provides—no beats, dialogue cues, or emotional notes may be skipped or ignored. "  # NEW
@@ -639,7 +637,6 @@ if st.session_state.pending_input is not None:
             "Preserve POV, tense, tone, and established continuity (location, characters, ongoing actions). "
             "Advance the immediate beat without large time jumps. "
             "Avoid repeating unchanged setting/sensory details; only add them if something changes or they heighten the moment. "
-            "Absolutely avoid sentence-by-sentence paraphrase; do not reuse more than 4 consecutive words from the user's text.\n\n"
             f"OUTLINE SOURCE:\n{cleaned_prompt or '(no explicit user text this turn)'}"
         )
 
@@ -657,7 +654,7 @@ if st.session_state.pending_input is not None:
     # 2) Include prior conversation history BUT:
     # --- cap history to avoid context overflow ---
     # We re-add a fresh base system every turn, so trimming old messages is safe.
-    MAX_EXCHANGES = 28  # ~28 assistant+user replies is plenty; raise/lower as you like
+    MAX_EXCHANGES = 60
     
     # Drop prior system messages (we'll re-add fresh system prompts below)
     non_system = [m for m in st.session_state.messages if m.get("role") != "system"]
@@ -732,15 +729,17 @@ if st.session_state.pending_input is not None:
         payload.append({
             "role": "system",
             "content": (
-                "Treat the user's text as a blueprint for the next beat of the story. "
-                "Do not copy the text directly — instead, rewrite and expand it into immersive, vivid prose. "
-                "Preserve all intended actions, emotions, and facts, but flesh them out with creative detail, atmosphere, and natural dialogue. "
-                "If the user refers vaguely to speech (e.g., 'he says something about…'), invent fitting in-character dialogue. "
-                "If the user summarizes actions (e.g., 'she fights back'), fully describe how it happens. "
-                "Take creative liberties to enhance the scene, as long as they remain true to tone, context, and continuity. "
-                "Do not break immersion or treat the user as a chat partner — remain in the fictional world. "
-                "Ensure smooth transitions between moments, and keep existing setting details consistent. "
-                "Write at a length and richness similar to a published novel scene."
+                "You are continuing an ongoing story scene. "
+                "Treat the user's message as a direct continuation of what is already happening. "
+                "Do NOT reinterpret, summarize, or reset the scene. "
+        
+                "Maintain continuity of characters, location, tone, and emotional state. "
+                "Preserve everything that is already in motion and continue it forward naturally. "
+        
+                "You may rephrase the user's wording, but you must preserve meaning exactly. "
+                "Do not restart the scene or introduce a new framing. "
+        
+                "Write immersive, flowing narrative that extends the current moment."
             )
         })
     
@@ -859,9 +858,6 @@ if st.session_state.pending_input is not None:
     
     try:
         with st.spinner("Writing..."):
-            st.write("🟡 Sending request to model...")
-            st.write("Mode:", st.session_state.mode)
-            st.write("Directives:", directives)
             # First attempt
             resp = _call_openrouter(payload, temperature=temp, max_tokens=story_max)
     
