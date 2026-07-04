@@ -871,14 +871,24 @@ if st.session_state.pending_input is not None:
                 st.stop()
             else:
                 data = resp.json()
-                reply = (
-                    data.get("choices", [{}])[0]
-                        .get("message", {})
-                        .get("content")
-                )
+
+                # 1. HARD ERROR CHECK
+                if "error" in data:
+                    st.error("OpenRouter returned an error")
+                    st.json(data["error"])
+                    st.stop()
                 
-                if not reply:
-                    st.error("Empty response from model")
+                # 2. SAFE EXTRACTION
+                try:
+                    reply = data["choices"][0]["message"]["content"]
+                except Exception:
+                    st.error("Malformed response (no choices/message/content)")
+                    st.json(data)
+                    st.stop()
+                
+                # 3. EMPTY CHECK
+                if not reply or not isinstance(reply, str):
+                    st.error("Model returned empty content")
                     st.json(data)
                     st.stop()
     
