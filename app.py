@@ -859,9 +859,9 @@ if st.session_state.pending_input is not None:
     
     try:
         with st.spinner("Writing..."):
-        st.write("🟡 Sending request to model...")
-        st.write("Mode:", st.session_state.mode)
-        st.write("Directives:", directives)
+            st.write("🟡 Sending request to model...")
+            st.write("Mode:", st.session_state.mode)
+            st.write("Directives:", directives)
             # First attempt
             resp = _call_openrouter(payload, temperature=temp, max_tokens=story_max)
     
