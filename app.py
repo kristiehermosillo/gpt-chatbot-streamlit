@@ -822,7 +822,7 @@ if st.session_state.pending_input is not None:
     body = {
         "model": model,
         "messages": payload,
-        "temperature": 0.3,
+        "temperature": temp,
     }
     if sent_cap:
         body["max_tokens"] = 140 if sent_cap <= 2 else 220
@@ -859,16 +859,32 @@ if st.session_state.pending_input is not None:
     
     try:
         with st.spinner("Writing..."):
+        st.write("🟡 Sending request to model...")
+        st.write("Mode:", st.session_state.mode)
+        st.write("Directives:", directives)
             # First attempt
             resp = _call_openrouter(payload, temperature=temp, max_tokens=story_max)
     
             if resp.status_code != 200:
-                msg = f"API Error {resp.status_code}: {resp.text}"
-                st.session_state.last_error = msg
-                st.error(msg)
+                st.error("❌ API REQUEST FAILED")
+                st.error(f"Status Code: {resp.status_code}")
+                st.code(resp.text)
+            
+                st.session_state.last_error = resp.text
                 st.session_state.just_responded = False
+                st.stop()
             else:
-                reply = resp.json()["choices"][0]["message"]["content"]
+                data = resp.json()
+                reply = (
+                    data.get("choices", [{}])[0]
+                        .get("message", {})
+                        .get("content")
+                )
+                
+                if not reply:
+                    st.error("Empty response from model")
+                    st.json(data)
+                    st.stop()
     
                 # If it violates bracket rules, retry once with stricter system + lower temp
                 if violates_bracket_rules(reply, directives) and st.session_state.mode == "Chat" and directives:
@@ -904,7 +920,9 @@ if st.session_state.pending_input is not None:
     
     except Exception as e:
         st.session_state.last_error = f"Request failed: {e}"
-        st.error(st.session_state.last_error)
+        st.error("🔥 EXCEPTION OCCURRED")
+        st.code(str(e))
+        raise
     finally:
         st.session_state.just_responded = False
 # ---------------- Debug panel ----------------
