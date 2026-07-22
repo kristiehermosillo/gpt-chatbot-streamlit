@@ -551,7 +551,7 @@ if st.session_state.get("mode") == "Chat":
 # ---------------- Ensure base state ----------------
 api_key = st.secrets["OPENROUTER_API_KEY"]
 referer_url = st.secrets["REFERER_URL"]
-model = "thedrummer/cydonia-24b-v4.1"
+model = "thedrummer/skyfall-36b-v2"
 
 # hydrate from active chat record if missing (safety)
 rec = st.session_state.sessions[st.session_state.active_session]
