@@ -627,19 +627,33 @@ if st.session_state.pending_input is not None:
         hidden_blob = "; ".join(d.strip() for d in directives if d.strip())
         model_user_content = f"<hidden>{hidden_blob}</hidden>\n\n{cleaned_prompt or '(no explicit user text this turn)'}"
     elif st.session_state.mode == "Story":
-        # Story-only: DO NOT echo the user's words. Treat them as an outline, then write fresh prose with added beats.
-        model_user_content = (
-            "You are continuing a single ongoing scene. "
-            "Then write 3–6 short paragraphs of ORIGINAL prose that follows those beats, adding plausible connective tissue, "
-            "fresh wording, concrete micro-actions, and dialogue. "
-            "You MUST incorporate **every element** the user provides—no beats, dialogue cues, or emotional notes may be skipped or ignored. "  # NEW
-            "If the user shorthand-hints at speech (e.g., 'he says something about…'), you must generate full dialogue. "  # NEW
-            "Preserve POV, tense, tone, and established continuity (location, characters, ongoing actions). "
-            "Advance the immediate beat without large time jumps. "
-            "Avoid repeating unchanged setting/sensory details; only add them if something changes or they heighten the moment. "
-            f"OUTLINE SOURCE:\n{cleaned_prompt or '(no explicit user text this turn)'}"
-        )
+        story_direction = (cleaned_prompt or "").strip()
 
+        simple_continue = story_direction.lower().rstrip(".!?") in {
+            "continue",
+            "keep going",
+            "go on",
+            "continue the story",
+        }
+
+        if simple_continue:
+            model_user_content = (
+                "Continue the ongoing story directly after the previous assistant response. "
+                "Do not recap, repeat, rewrite, or closely paraphrase any earlier passage. "
+                "Move the scene forward with new action, dialogue, decisions, discoveries, or consequences. "
+                "Preserve the established POV, tense, tone, characters, location, and continuity."
+            )
+        else:
+            model_user_content = (
+                "Treat the user's text below as direction for the next part of the same ongoing story. "
+                "Include every requested beat, fact, emotion, and dialogue cue. "
+                "Write fresh, polished prose rather than echoing the directions. "
+                "Invent natural in-character dialogue when speech is summarized. "
+                "Add fitting transitions, actions, reactions, and creative details. "
+                "Do not repeat or closely paraphrase any passage already written. "
+                "Move the story forward while preserving established POV, tense, tone, and continuity.\n\n"
+                f"STORY DIRECTION:\n{story_direction or '(continue naturally)'}"
+            )
 
     else:
         model_user_content = cleaned_prompt or "(no explicit user text this turn)"
@@ -729,37 +743,18 @@ if st.session_state.pending_input is not None:
         payload.append({
             "role": "system",
             "content": (
-                "You are continuing an ongoing story scene. "
-                "Treat the user's message as a direct continuation of what is already happening. "
-                "Do NOT reinterpret, summarize, or reset the scene. "
-        
-                "Maintain continuity of characters, location, tone, and emotional state. "
-                "Preserve everything that is already in motion and continue it forward naturally. "
-        
-                "You may rephrase the user's wording, but you must preserve meaning exactly. "
-                "Do not restart the scene or introduce a new framing. "
-        
-                "Write immersive, flowing narrative that extends the current moment."
+                "You are writing one continuous ongoing story. "
+                "Earlier assistant messages are established canon and are already included in the conversation history. "
+                "Continue directly from the exact endpoint of the previous response. "
+                "Never recap, repeat, rewrite, or closely paraphrase an earlier paragraph, action, sensation, or line of dialogue. "
+                "Every new paragraph must add something new: action, dialogue, information, a decision, a discovery, "
+                "a consequence, or a meaningful change in the scene. "
+                "If the user says only 'Continue,' advance the story naturally without waiting for additional direction. "
+                "Follow every specific beat the user provides while taking fitting creative liberties. "
+                "Preserve established POV, tense, tone, character knowledge, relationships, location, injuries, objects, "
+                "and emotional state. Use a smooth transition whenever the time or location genuinely changes. "
+                "Write immersive, creative prose with natural narrative momentum."
             )
-        })
-    
-        # Continuity anchor (Story only) — helps it remember where we are
-        last_beat = _last_assistant_text(st.session_state.messages)
-        if last_beat:
-            anchor = last_beat[-400:]
-            payload.append({
-                "role": "system",
-                "content": (
-                    "STORY CONTINUITY ANCHOR: Keep characters, location, and ongoing actions consistent with the recent beat "
-                    "(unless the USER moves it). If you must move or time-shift, insert a brief, smooth transition FIRST, "
-                    "then continue. Avoid repeating unchanged setting/sensory details."
-                    f"\n\nRecent scene excerpt:\n{anchor}"
-                )
-            })
-
-        payload.append({
-            "role": "system",
-            "content": "Story-only clamp: stay inside the same moment the user wrote. No time skips. No new events beyond what the line implies."
         })
 
     if st.session_state.mode == "Chat":
